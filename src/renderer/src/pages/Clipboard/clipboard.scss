@@ -1,0 +1,41 @@
+.clipboard-page {
+  // 窗口 620x420，外层 p-3 占 24px，这里撑满剩余高度
+  @apply flex flex-col h-[calc(100vh-24px)] box-border;
+
+  .clipboard-list {
+    @apply flex-1 overflow-y-auto pt-1 min-h-0;
+
+    .item {
+      @apply flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-slate-700;
+
+      &.active {
+        @apply bg-orange-400 text-white;
+      }
+
+      .preview {
+        @apply flex-1 min-w-0 text-sm whitespace-pre-wrap break-all line-clamp-2;
+      }
+
+      .time {
+        @apply text-[10px] opacity-70 shrink-0;
+      }
+
+      // 删除按钮 hover 行时才显示，避免视觉噪音
+      .remove {
+        @apply shrink-0 cursor-pointer opacity-0 transition-opacity flex items-center;
+      }
+
+      &:hover .remove {
+        @apply opacity-100;
+      }
+    }
+
+    .empty {
+      @apply text-center text-slate-400 text-xs py-6 select-none;
+    }
+  }
+
+  footer {
+    @apply pt-2 mt-1 border-t border-slate-200;
+  }
+}

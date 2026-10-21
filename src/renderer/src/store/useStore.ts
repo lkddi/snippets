@@ -4,6 +4,9 @@ interface StateProps {
   /** 搜索结果 */
   data: ContentType[]
   setData: (data: ContentType[]) => void
+  /** 本机应用搜索结果，聚合展示时排在片段前面 */
+  apps: AppType[]
+  setApps: (apps: AppType[]) => void
   search: string
   setSearch: (search: string) => void
   error: string
@@ -24,6 +27,8 @@ export const useStore = create(
     (set) => ({
       data: [],
       setData: (data) => set({ data }),
+      apps: [],
+      setApps: (apps) => set({ apps }),
       search: '',
       setSearch: (content) => set({ search: content }),
       error: '',

@@ -7,9 +7,13 @@ export interface OptionsType extends Partial<BrowserWindowConstructorOptions> {
   openDevTools?: boolean
   hash?: string
   initShow?: boolean
+  /** 失焦时自动隐藏窗口（仅剪贴板这类"快取快藏"的面板需要） */
+  hideOnBlur?: boolean
 }
 
 export function createWindow(options: OptionsType): BrowserWindow {
+  // hideOnBlur 不是 Electron 原生选项，先拆出来避免混进 BrowserWindow 构造参数
+  const { hideOnBlur, ...windowOptions } = options
   // const { width } = screen.getPrimaryDisplay().workAreaSize
   // Create the browser window.
   const win = new BrowserWindow(
@@ -31,9 +35,16 @@ export function createWindow(options: OptionsType): BrowserWindow {
           sandbox: false
         }
       },
-      options
+      windowOptions
     )
   )
+
+  // 面板类窗口（剪贴板）失焦即隐藏，交互习惯与 Maccy 等剪贴板工具一致
+  if (hideOnBlur) {
+    win.on('blur', () => {
+      if (!win.isDestroyed()) win.hide()
+    })
+  }
 
   if (is.dev && options.openDevTools) {
     win.webContents.openDevTools()

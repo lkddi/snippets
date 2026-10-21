@@ -1,4 +1,5 @@
 import { app, dialog, globalShortcut, ipcMain, IpcMainInvokeEvent } from 'electron'
+import { stopClipboardHook } from './clipboard'
 import { config } from './db/query'
 import { getByNameWindow } from './windows'
 
@@ -68,6 +69,8 @@ ipcMain.handle('shortCut', (_event: IpcMainInvokeEvent, shortCut: string) => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
   registeredShortCut = ''
+  // uiohook 全局键盘监听退出前先 stop，避免强杀 hook 线程
+  stopClipboardHook()
 })
 
 export const registerAppGlobShortcut = (): void => {

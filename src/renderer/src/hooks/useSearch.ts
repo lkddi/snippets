@@ -5,6 +5,7 @@ const SEARCH_DELAY = 150
 
 export default () => {
   const setData = useStore((s) => s.setData)
+  const setApps = useStore((s) => s.setApps)
   const search = useStore((s) => s.search)
   const setSearch = useStore((s) => s.setSearch)
   const timer = useRef<ReturnType<typeof setTimeout>>()
@@ -15,15 +16,22 @@ export default () => {
 
   const query = async (keyword: string): Promise<void> => {
     if (!keyword.trim()) {
+      // 清空搜索时把应用结果一并清掉
       setData([])
+      setApps([])
       return
     }
-    const data = await window.api.sql<ContentType[]>(
-      `select * from contents where title like @keyword or content like @keyword order by id desc limit 6`,
-      'findAll',
-      { keyword: `%${keyword}%` }
-    )
-    setData(data)
+    // 应用搜索（主进程扫盘）与片段搜索（SQLite）并行执行，互不阻塞
+    const [contents, apps] = await Promise.all([
+      window.api.sql<ContentType[]>(
+        `select * from contents where title like @keyword or content like @keyword order by id desc limit 6`,
+        'findAll',
+        { keyword: `%${keyword}%` }
+      ),
+      window.api.searchApps(keyword)
+    ])
+    setData(contents)
+    setApps(apps)
   }
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>): void => {

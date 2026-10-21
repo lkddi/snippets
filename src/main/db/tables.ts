@@ -22,8 +22,15 @@ create table if not exists config (
   content text not null
 );
 
+create table if not exists clipboard_items (
+  id integer primary key autoincrement not null,
+  content text not null,
+  created_at text not null
+);
+
 create index if not exists idx_contents_category_id on contents (category_id);
 create index if not exists idx_contents_title on contents (title);
+create index if not exists idx_clipboard_items_created_at on clipboard_items (created_at);
 `
 
 export function initTable(): void {
@@ -53,7 +60,9 @@ function initData(database: SqliteDatabase): void {
     insertConfig.run({
       content: JSON.stringify({
         shortCut: 'Alt+Space',
-        databaseDirectory: getMainConfig().databaseDirectory || ''
+        databaseDirectory: getMainConfig().databaseDirectory || '',
+        // 剪贴板默认用连按两次 Option 唤起
+        clipboardShortCut: 'doubleOption'
       })
     })
 

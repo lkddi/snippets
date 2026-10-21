@@ -4,6 +4,7 @@ import Home from '@renderer/layouts/Home'
 import { Category } from '@renderer/pages/Category'
 import CategoryAction from '@renderer/pages/Category/CategoryAction'
 import CategoryLoader from '@renderer/pages/Category/CategoryLoader'
+import { Clipboard } from '@renderer/pages/Clipboard'
 import { Content } from '@renderer/pages/Content'
 import ContentAction from '@renderer/pages/Content/ContentAction'
 import ContentLoader from '@renderer/pages/Content/ContentLoader'
@@ -20,6 +21,12 @@ const router = createHashRouter([
   {
     path: '/',
     element: <Home />,
+    errorElement: <RouteError />
+  },
+  {
+    // 剪贴板历史窗口（快捷键/双击 Option 唤起，hash /#clipboard）
+    path: 'clipboard',
+    element: <Clipboard />,
     errorElement: <RouteError />
   },
   {

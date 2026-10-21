@@ -37,7 +37,11 @@ export const deleteCategory = (_sql: string, params: { id: number | string }) =>
 }
 
 export const config = (): ConfigDataType => {
-  const fallback: ConfigDataType = { shortCut: '', databaseDirectory: '' }
+  const fallback: ConfigDataType = {
+    shortCut: '',
+    databaseDirectory: '',
+    clipboardShortCut: 'doubleOption'
+  }
   const row = findOne('select * from config where id = 1') as { content: string } | undefined
   if (!row?.content) return fallback
   try {

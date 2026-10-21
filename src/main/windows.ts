@@ -42,6 +42,19 @@ const windows: Record<WindowNameType, WindowConfig> = {
       transparent: false,
       hash: '/#config'
     }
+  },
+  clipboard: {
+    id: 0,
+    options: {
+      initShow: false,
+      openDevTools: false,
+      width: 620,
+      height: 420,
+      // 剪贴板面板参考 Maccy 类工具：frameless 透明置顶，失焦即隐藏
+      alwaysOnTop: true,
+      hash: '/#clipboard',
+      hideOnBlur: true
+    }
   }
 }
 
@@ -59,6 +72,14 @@ export const getByNameWindow = (name: WindowNameType): BrowserWindow => {
     if (item.id === win.id) item.id = 0
   })
   return win
+}
+
+/** 只查找已存在的窗口，不会像 getByNameWindow 一样触发懒创建 */
+export const findWindow = (name: WindowNameType): BrowserWindow | null => {
+  const item = windows[name]
+  if (!item) return null
+  const existed = item.id ? BrowserWindow.fromId(item.id) : null
+  return existed && !existed.isDestroyed() ? existed : null
 }
 
 export const getWindowByEvent = (

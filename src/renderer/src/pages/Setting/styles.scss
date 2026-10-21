@@ -12,4 +12,10 @@
       @apply border w-full outline-none;
     }
   }
+  .clip-hint {
+    @apply text-xs text-slate-400 mt-2 select-none;
+  }
+  .clip-reset {
+    @apply text-blue-600 cursor-pointer ml-1;
+  }
 }

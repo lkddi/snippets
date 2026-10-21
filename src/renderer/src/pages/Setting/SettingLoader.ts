@@ -4,7 +4,11 @@ export default async () => {
     | { content: string }
     | undefined
 
-  const fallback: ConfigDataType = { shortCut: '', databaseDirectory: '' }
+  const fallback: ConfigDataType = {
+    shortCut: '',
+    databaseDirectory: '',
+    clipboardShortCut: 'doubleOption'
+  }
   if (!row?.content) return fallback
 
   try {

@@ -26,6 +26,37 @@ const api = {
   },
   initTable: () => {
     ipcRenderer.send('initTable')
+  },
+  // 应用启动器：搜索本机已安装应用 / 启动应用
+  searchApps: (keyword: string) => {
+    return ipcRenderer.invoke('apps:search', keyword)
+  },
+  openApp: (path: string) => {
+    return ipcRenderer.invoke('apps:open', path)
+  },
+  // 剪贴板历史
+  clipboardList: (keyword = '') => {
+    return ipcRenderer.invoke('clipboard:list', keyword)
+  },
+  clipboardDelete: (id: number) => {
+    return ipcRenderer.invoke('clipboard:delete', id)
+  },
+  clipboardClear: () => {
+    return ipcRenderer.invoke('clipboard:clear')
+  },
+  clipboardPaste: (id: number) => {
+    return ipcRenderer.invoke('clipboard:paste', id)
+  },
+  clipboardShortCut: (shortCut: string) => {
+    return ipcRenderer.invoke('clipboardShortCut', shortCut)
+  },
+  // 监听剪贴板更新，返回取消订阅函数供 React effect 清理
+  onClipboardUpdated: (callback: () => void) => {
+    const listener = (): void => callback()
+    ipcRenderer.on('clipboard:updated', listener)
+    return (): void => {
+      ipcRenderer.removeListener('clipboard:updated', listener)
+    }
   }
 }
 

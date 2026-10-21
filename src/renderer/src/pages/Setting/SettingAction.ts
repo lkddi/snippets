@@ -8,9 +8,18 @@ export default async ({ request }) => {
     return { error: `快捷键 ${data.shortCut || '(空)'} 注册失败，请换一个组合键` }
   }
 
+  // 剪贴板快捷键：'doubleOption' 表示双击 Option 模式，主进程会注销已注册的标准快捷键，
+  // 所以两种模式都要走一次 IPC，保证切换双向生效
+  const clipShortCut = data.clipboardShortCut || 'doubleOption'
+  const isClipRegister = await window.api.clipboardShortCut(clipShortCut)
+  if (!isClipRegister) {
+    return { error: `剪贴板快捷键 ${clipShortCut} 注册失败，请换一个组合键` }
+  }
+
   const content = JSON.stringify({
     shortCut: data.shortCut,
-    databaseDirectory: data.databaseDirectory
+    databaseDirectory: data.databaseDirectory,
+    clipboardShortCut: clipShortCut
   })
 
   const changes = await window.api.sql<number>(`update config set content=@content where id=1`, 'update', {

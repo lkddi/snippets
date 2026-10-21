@@ -1,6 +1,9 @@
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { app, BrowserWindow } from 'electron'
 import './ipc'
+// 应用启动器：导入即注册 apps:search / apps:open / apps:rescan IPC
+import './apps'
+import { initClipboard, registerAppClipboardShortCut } from './clipboard'
 import './db'
 import { initTable } from './db/tables'
 import { setMainConfig } from './db/config'
@@ -34,6 +37,14 @@ app.whenReady().then(() => {
     registerAppGlobShortcut()
   } catch (error) {
     console.error('注册全局快捷键失败', error)
+  }
+
+  // 剪贴板监听与快捷键初始化失败不应影响主流程（双击 Option 检测内部自带降级）
+  try {
+    initClipboard()
+    registerAppClipboardShortCut()
+  } catch (error) {
+    console.error('初始化剪贴板功能失败', error)
   }
 
   getByNameWindow('search')
