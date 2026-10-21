@@ -1,17 +1,30 @@
 export default async ({ params, request }) => {
   const url = new URL(request.url)
-  const searchWord = url.searchParams.get('searchWord')
-  const { cid } = params
-  let sql = `select * from contents `
+  const searchWord = url.searchParams.get('searchWord')?.trim()
+  const cid = params.cid
+  const categoryId = cid === undefined ? null : Number(cid)
+
   if (searchWord) {
-    sql += ` where title like @searchWord order by id desc`
-    return window.api.sql(sql, 'findAll', { searchWord: `%${searchWord}%` })
+    // 在某个分类里搜索时只搜当前分类；"所有片段"下搜全部
+    if (categoryId !== null && Number.isFinite(categoryId)) {
+      return window.api.sql(
+        `select * from contents where category_id = @category_id and (title like @keyword or content like @keyword) order by id desc`,
+        'findAll',
+        { category_id: categoryId, keyword: `%${searchWord}%` }
+      )
+    }
+    return window.api.sql(
+      `select * from contents where title like @keyword or content like @keyword order by id desc`,
+      'findAll',
+      { keyword: `%${searchWord}%` }
+    )
   }
 
-  if (cid !== undefined) {
-    sql += `where category_id=${cid}`
+  if (categoryId !== null && Number.isFinite(categoryId)) {
+    return window.api.sql(`select * from contents where category_id = @category_id order by id desc`, 'findAll', {
+      category_id: categoryId
+    })
   }
 
-  sql += ' order by id desc'
-  return window.api.sql(sql, 'findAll')
+  return window.api.sql('select * from contents order by id desc', 'findAll')
 }

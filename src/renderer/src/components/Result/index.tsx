@@ -10,8 +10,8 @@ export default function Result() {
       {data.map((item) => (
         <div
           key={item.id}
-          className={classNames({ active: item.id == id })}
-          onClick={() => selectItem(item.id)}
+          className={classNames({ active: item.id === id })}
+          onClick={() => void selectItem(item.id)}
         >
           {item.title}
         </div>

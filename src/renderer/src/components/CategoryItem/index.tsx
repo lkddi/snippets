@@ -13,33 +13,43 @@ export const CategoryItem = ({ category }: Props) => {
   const setEditCategoryId = useStore((state) => state.setEditCategoryId)
   const fetcher = useFetcher()
   const { contextMenu, dragHandle } = useCategory(category)
-  const linkStyls = (isActive: boolean) => {
-    return isActive ? styles.active : styles.link
+
+  const linkStyls = (isActive: boolean): string => (isActive ? styles.active : styles.link)
+
+  const closeEdit = (): void => setEditCategoryId(0)
+
+  const submitName = (name: string): void => {
+    const value = name.trim()
+    if (value && value !== category.name) {
+      fetcher.submit({ id: category.id, name: value }, { method: 'PUT' })
+    }
+    closeEdit()
   }
+
   return (
     <>
-      {editCategoryId == category.id ? (
+      {editCategoryId === category.id ? (
         <div className={styles.input}>
           <input
             defaultValue={category.name}
             name="name"
             autoFocus
+            // 之前只有 Enter 能退出编辑，误触双击后只能刷新页面
+            onBlur={(e) => submitName(e.currentTarget.value)}
             onKeyDown={(e) => {
-              console.log(e.key)
               if (e.key === 'Enter') {
-                fetcher.submit({ id: category.id, name: e.currentTarget.value }, { method: 'PUT' })
-                setEditCategoryId(0)
+                // 统一走 onBlur 提交，避免 Enter 与 blur 重复提交
+                e.currentTarget.blur()
+              } else if (e.key === 'Escape') {
+                closeEdit()
               }
             }}
           />
         </div>
       ) : (
         <NavLink
-          onDoubleClick={(e) => {
-            setEditCategoryId(category.id)
-          }}
+          onDoubleClick={() => setEditCategoryId(category.id)}
           to={`/config/category/contentList/${category.id}`}
-          key={category.id}
           className={({ isActive }) => linkStyls(isActive)}
           onContextMenu={contextMenu()}
           {...dragHandle}

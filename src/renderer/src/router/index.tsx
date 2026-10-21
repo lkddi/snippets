@@ -1,3 +1,4 @@
+import { RouteError } from '@renderer/components/RouteError'
 import Config from '@renderer/layouts/Config'
 import Home from '@renderer/layouts/Home'
 import { Category } from '@renderer/pages/Category'
@@ -18,29 +19,34 @@ import { createHashRouter } from 'react-router-dom'
 const router = createHashRouter([
   {
     path: '/',
-    element: <Home />
+    element: <Home />,
+    errorElement: <RouteError />
   },
   {
     path: 'config',
     element: <Config />,
+    errorElement: <RouteError />,
     children: [
       {
         index: true,
-        element: <Setting />
-        // loader: SettingLoader,
-        // action: SettingAction
+        element: <Setting />,
+        loader: SettingLoader,
+        action: SettingAction,
+        errorElement: <RouteError />
       },
       {
         path: 'category',
         element: <Category />,
         loader: CategoryLoader,
         action: CategoryAction,
+        errorElement: <RouteError />,
         children: [
           {
             path: 'contentList/:cid?',
             loader: ContentListLoader,
             action: ContentListAction,
             element: <ContentList />,
+            errorElement: <RouteError />,
             children: [
               {
                 index: true,
@@ -50,7 +56,8 @@ const router = createHashRouter([
                 path: 'content/:id',
                 loader: ContentLoader,
                 action: ContentAction,
-                element: <Content />
+                element: <Content />,
+                errorElement: <RouteError />
               }
             ]
           }

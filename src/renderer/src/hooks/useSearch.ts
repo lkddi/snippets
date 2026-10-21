@@ -1,17 +1,39 @@
 import { useStore } from '@renderer/store/useStore'
-import { ChangeEvent } from 'react'
+import { ChangeEvent, useEffect, useRef } from 'react'
+
+const SEARCH_DELAY = 150
 
 export default () => {
-  const { setData } = useStore((s) => s)
-  const { search, setSearch } = useStore()
-  const handleSearch = async (e: ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value)
-    const data = await window.api.sql(
-      `select * from contents where title like @content limit 6`,
+  const setData = useStore((s) => s.setData)
+  const search = useStore((s) => s.search)
+  const setSearch = useStore((s) => s.setSearch)
+  const timer = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    return () => clearTimeout(timer.current)
+  }, [])
+
+  const query = async (keyword: string): Promise<void> => {
+    if (!keyword.trim()) {
+      setData([])
+      return
+    }
+    const data = await window.api.sql<ContentType[]>(
+      `select * from contents where title like @keyword or content like @keyword order by id desc limit 6`,
       'findAll',
-      { content: `%${e.target.value}%` }
+      { keyword: `%${keyword}%` }
     )
-    setData(data as ContentType[])
+    setData(data)
+  }
+
+  const handleSearch = (e: ChangeEvent<HTMLInputElement>): void => {
+    const keyword = e.target.value
+    setSearch(keyword)
+    // 防抖：避免每敲一个字都查一次库
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      void query(keyword)
+    }, SEARCH_DELAY)
   }
 
   return { search, handleSearch }

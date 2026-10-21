@@ -1,7 +1,16 @@
 export default async () => {
-  const config = (await window.api.sql(`select * from config where id=1`, 'findOne', {})) as {
-    content: string
-  }
+  // 配置以数据库为准（localStorage 曾被清空后会静默回落到桌面数据库）
+  const row = (await window.api.sql(`select * from config where id=1`, 'findOne')) as
+    | { content: string }
+    | undefined
 
-  return JSON.parse(config.content) as ConfigDataType
+  const fallback: ConfigDataType = { shortCut: '', databaseDirectory: '' }
+  if (!row?.content) return fallback
+
+  try {
+    return { ...fallback, ...(JSON.parse(row.content) as Partial<ConfigDataType>) }
+  } catch (error) {
+    console.error('配置内容解析失败', error)
+    return fallback
+  }
 }

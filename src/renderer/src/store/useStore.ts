@@ -1,8 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 interface StateProps {
-  config: ConfigDataType
-  setConfig: (config: ConfigDataType) => void
+  /** 搜索结果 */
   data: ContentType[]
   setData: (data: ContentType[]) => void
   search: string
@@ -15,11 +14,14 @@ interface StateProps {
   setEditCategoryId: (id: number) => void
 }
 
+/**
+ * 注意：配置不再放这里。
+ * 之前 config.databaseDirectory 存在 localStorage，一旦被清空，主进程就会把库目录置空
+ * 并回落到桌面上的另一个数据库，表现为"片段全丢了"。配置现在以数据库 / 主进程文件为准。
+ */
 export const useStore = create(
   persist<StateProps>(
     (set) => ({
-      config: { databaseDirectory: '', shortCut: '' },
-      setConfig: (config) => set({ config }),
       data: [],
       setData: (data) => set({ data }),
       search: '',

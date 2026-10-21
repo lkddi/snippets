@@ -8,8 +8,9 @@ export default (category: CategoryType) => {
   const submit = useSubmit()
   const { showContextMenu } = useContextMenu()
   const { updateContentCategory } = useContent()
-  const contextMenu = () => {
-    return showContextMenu(
+
+  const contextMenu = () =>
+    showContextMenu(
       [
         {
           key: 'remove',
@@ -22,12 +23,11 @@ export default (category: CategoryType) => {
       ],
       { className: 'contextMenu' }
     )
-  }
 
   const dragHandle = {
     onDragOver: (e: DragEvent) => {
       e.preventDefault()
-      e!.dataTransfer!.dropEffect = 'move'
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
       const el = e.currentTarget as HTMLDivElement
       el.classList.add(styles.darging)
     },
@@ -38,8 +38,10 @@ export default (category: CategoryType) => {
     onDrop: (e: DragEvent) => {
       const el = e.currentTarget as HTMLDivElement
       el.classList.remove(styles.darging)
-      const id = e!.dataTransfer!.getData('id')
-      updateContentCategory(Number(id), category.id)
+      const id = Number(e.dataTransfer?.getData('id'))
+      // 拖拽的不是片段（没带 id）时直接忽略，避免把 category_id 改成 NaN
+      if (!Number.isFinite(id) || id <= 0) return
+      void updateContentCategory(id, category.id)
     }
   }
 

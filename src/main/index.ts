@@ -1,16 +1,14 @@
 import { electronApp, optimizer } from '@electron-toolkit/utils'
-import { app, BrowserWindow, ipcMain } from 'electron'
-import './windows'
+import { app, BrowserWindow } from 'electron'
 import './ipc'
 import './db'
+import { initTable } from './db/tables'
+import { setMainConfig } from './db/config'
 import { registerAppGlobShortcut } from './shortCut'
-// import './code'
-// import './db'
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
+import { getByNameWindow } from './windows'
+
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  registerAppGlobShortcut()
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -21,13 +19,32 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  // 建表 / 初始化数据必须在创建窗口和读取配置之前完成，
+  // 否则首次启动查 config 表会抛 "no such table"，并中断后续初始化
+  try {
+    initTable()
+    // 标记已完成首次初始化，之后切换数据库目录不再灌演示数据
+    setMainConfig({ initialized: true })
+  } catch (error) {
+    console.error('初始化数据库失败', error)
+  }
+
+  // 配置读取依赖数据表，初始化失败时不要让后面的窗口创建一起中断
+  try {
+    registerAppGlobShortcut()
+  } catch (error) {
+    console.error('注册全局快捷键失败', error)
+  }
+
+  getByNameWindow('search')
+  getByNameWindow('config')
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      getByNameWindow('search').show()
+    }
   })
 })
 
@@ -39,6 +56,3 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
-// In this file you can include the rest of your app"s specific main process
-// code. You can also put them in separate files and require them here.

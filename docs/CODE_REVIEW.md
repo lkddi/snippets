@@ -140,3 +140,65 @@ return globalShortcut.register(shortCut, () => {...})
 7. 删除分类加事务（问题 9）
 
 其余为代码质量项，可随相关文件改动一并清理。
+
+---
+
+## 五、修复记录（已全部处理）
+
+上面 1–28 项均已修复，逐条对应如下。
+
+### 严重项
+
+**问题 1 · 配置来源与初始化时机**
+- 新增 `src/main/db/config.ts`：把数据库目录持久化到 `userData/snippets-config.json`，不再依赖渲染进程 localStorage（localStorage 只存搜索态）。
+- `layouts/Home/index.tsx` 删除 render 体里的 `shortCut / setDatabaseDirectory / initTable` 三连调用，只保留鼠标穿透的 effect 绑定。
+- `router/index.tsx` 恢复 `Setting` 的 loader/action，配置改为从 SQLite 读取（`SettingLoader` 增加了无记录时的兜底）。
+- `store/useStore.ts` 移除 `config / setConfig`，避免再次出现"UI 配置 = 数据源"。
+
+**问题 2 · 首次启动建表晚于读配置**
+- `main/index.ts` 在 `whenReady` 中先 `initTable()`，再 `registerAppGlobShortcut()`，最后才创建窗口；初始化失败的异常不再中断后续流程。
+- `windows.ts` 去掉自带的 `whenReady` 建窗逻辑，窗口统一由 `main/index.ts` 创建。
+- `query.config()` 在无记录 / JSON 损坏时返回默认值，不再抛 `TypeError`。
+
+**问题 3 · 每次查询新建连接**
+- `db/connect.ts` 改为单例连接，加 `busy_timeout`，目录不可用时依次回落到桌面、`userData`；新增 `closeDb / reopenDb / getDatabaseFile`。
+
+### 功能性 Bug
+
+- **问题 4**：`useSelect.ts` 改为调用 `closeWindow('search')`，删除不存在的 `hideWindow`；同时补上 `ArrowUp/Down` 越界与 `findIndex = -1` 的处理。
+- **问题 5**：`ContentListAction` 的 `redirect` 改成绝对路径并显式带 `cid`，在"所有片段"下新增片段不再白屏。
+- **问题 6**：`ContentLoader` 查不到片段时 `redirect` 回列表；5 个路由节点全部加了 `errorElement`（新增 `components/RouteError.tsx`）。
+- **问题 7**：编辑器改为 400ms 防抖 + 失焦立即保存；`ContentAction` 只有"切换分类"时才 redirect，普通编辑返回 `{ ok: true }` 走自动 revalidate。
+- **问题 8**：`shortCut.ts` 记录"当前已注册的键"，先注销旧键再注册新键，失败时**把旧键装回去**并返回 `false`；不再用 `unregisterAll`；空快捷键直接跳过；失败原因在设置页用 `Alert` 回显（不再弹系统框）。
+- **问题 9**：新增 `query.deleteCategory`，用 `db.transaction()` 把"片段改未分类 + 删除分类"包在一起，渲染层通过 `sql('', 'deleteCategory', { id })` 调用。
+
+### 中低优先级
+
+- **问题 10**：`main/index.ts` 引入 `createWindow` 的替代实现（改用 `getByNameWindow`），`activate` 不再调用未导入函数。
+- **问题 11**：`findAll / findOne / insert / update / del` 统一支持命名参数。
+- **问题 12**：`config()` 兜底（见问题 2）。
+- **问题 13**：`db/ipc.ts` 增加 `ACTIONS` 白名单校验，非法类型直接报错并记录日志。
+- **问题 14**：`ContentLoader / ContentListLoader / ContentListAction / CategoryAction / ContentAction` 全部改为 `@param` 命名参数，不再拼接 URL 参数。
+- **问题 15**：`windows.ts` 监听 `closed` 复位 `id`，并在 `fromId` 拿到已销毁窗口时重建。
+- **问题 16**：快捷键回调里改为每次 `getByNameWindow('search')` 取窗口并判 `isDestroyed()`。
+- **问题 17**：`useIgnoreMouseEvents` 返回清理函数，`Home` 在 `useEffect` 中绑定/解绑。
+- **问题 18**：`CategoryItem` 编辑态支持 `Esc` 取消、失焦保存，`Enter` 走 blur 统一提交。
+- **问题 19**：`Setting` 用 `useRef` 累积修饰键，`Meta → Command/Super` 映射，非法键位直接忽略；录入后自动提交。
+- **问题 20**：`ContentListLoader` 在分类内搜索时只搜当前分类，`cid` 做数值校验。
+- **问题 21**：`useSearch` 加 150ms 防抖、空关键字不发请求、同时搜索 `title` 与 `content`。
+- **问题 22**：移除组件内部无效的 `key` 属性（key 保留在父级 map 处）。
+- **问题 23**：清理全部 `console.log` 调试残留。
+- **问题 24**：两个 `electron.vite.config.*.mjs` 历史备份未删除，可在确认后清理。
+- **问题 25**：移除 preload 中的 `openConfigWindow` 死代码。
+- **问题 26**：搜索窗 `alwaysOnTop: true`；打开配置窗之前先隐藏搜索窗，避免遮挡。
+- **问题 27**：`* { opacity: 0.995 }` 属视觉取舍，保留原样。
+- **问题 28**：`initTable` 增加 `contents(category_id)`、`contents(title)` 索引；分类删除走事务。
+- 另外修复：`tables.ts` 灌演示数据改用具名参数 + 事务，且只在全新安装时灌一次（删空片段重启不再"复活"演示数据）；判断依据从 `contents` 改为 `config` 表。
+- 另外修复：`Welcome` 未使用的 `React` 导入（原项目 `npm run typecheck` 会因此报错）。
+
+### 验证情况
+
+- `tsc --noEmit -p tsconfig.node.json`：通过，无错误。
+- `tsc --noEmit -p tsconfig.web.json`：除 4 个包（`@icon-park/react`、`classnames`、`styled-components`、`@mantine/core`）因本机依赖安装不完整报 "Cannot find module" 外，业务代码无类型错误；这 4 个包缺失属于环境问题，不是代码问题。
+- 顺带发现：`@mantine/core` 被 `layouts/Config` 直接 import，但 `package.json` 里没有声明（只声明了 `mantine-contextmenu`），建议补上依赖，否则 pnpm 的严格 node_modules 下会构建失败。
+

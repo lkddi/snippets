@@ -1,5 +1,4 @@
 import { Code } from '@icon-park/react'
-import React from 'react'
 
 export const Welcome = () => {
   return (

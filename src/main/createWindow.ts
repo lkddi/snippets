@@ -1,4 +1,4 @@
-import { BrowserWindow, BrowserWindowConstructorOptions, screen, shell } from 'electron'
+import { BrowserWindow, BrowserWindowConstructorOptions, shell } from 'electron'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
 import { is } from '@electron-toolkit/utils'
@@ -49,12 +49,11 @@ export function createWindow(options: OptionsType): BrowserWindow {
   })
 
   // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
+  // Load the remote URL for development or the local html file in production.
+  const hash = options.hash ?? ''
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    win.loadURL(process.env['ELECTRON_RENDERER_URL'] + options.hash)
-    // win.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#config')
+    win.loadURL(process.env['ELECTRON_RENDERER_URL'] + hash)
   } else {
-    // win.loadFile(join(__dirname, '../renderer/index.html' + '/#config'))
     win.loadURL(
       url.format({
         //编译后的文件
@@ -64,7 +63,7 @@ export function createWindow(options: OptionsType): BrowserWindow {
         //protocol 后面需要两个/
         slashes: true,
         //hash 的值
-        hash: options.hash?.substring(1)
+        hash: hash.substring(1)
       })
     )
   }

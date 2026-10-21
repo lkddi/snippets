@@ -1,13 +1,22 @@
-import { app, BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from 'electron'
 import { createWindow, OptionsType } from './createWindow'
 
-export const config = {
+interface WindowConfig {
+  id: number
+  options: OptionsType
+}
+
+const windows: Record<WindowNameType, WindowConfig> = {
   search: {
     id: 0,
     options: {
       initShow: true,
       hash: '',
-      openDevTools: true
+      openDevTools: true,
+      width: 500,
+      height: 350,
+      // 热键唤起后要浮在其他应用之上，否则会被挡在后面
+      alwaysOnTop: true
     }
   },
   code: {
@@ -34,22 +43,27 @@ export const config = {
       hash: '/#config'
     }
   }
-} as Record<WindowNameType, { id: number; options: OptionsType }>
+}
 
-export const getByNameWindow = (name: WindowNameType) => {
-  let win = BrowserWindow.fromId(config[name].id)
-  if (!win) {
-    win = createWindow(config[name].options)
-    config[name].id = win.id
-  }
+export const getByNameWindow = (name: WindowNameType): BrowserWindow => {
+  const item = windows[name]
+  if (!item) throw new Error(`未定义的窗口: ${name}`)
+
+  // 窗口被关闭后 id 会失效，且 Electron 的窗口 id 会被复用，必须复位后再重建
+  const existed = item.id ? BrowserWindow.fromId(item.id) : null
+  if (existed && !existed.isDestroyed()) return existed
+
+  const win = createWindow(item.options)
+  item.id = win.id
+  win.on('closed', () => {
+    if (item.id === win.id) item.id = 0
+  })
   return win
 }
 
-export const getWindowByEvent = (event: IpcMainEvent | IpcMainInvokeEvent) => {
-  return BrowserWindow.fromWebContents(event.sender)!
+export const getWindowByEvent = (
+  event: IpcMainEvent | IpcMainInvokeEvent
+): BrowserWindow | null => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  return win && !win.isDestroyed() ? win : null
 }
-
-app.whenReady().then(() => {
-  getByNameWindow('search')
-  getByNameWindow('config')
-})

@@ -3,13 +3,16 @@ import { Alert } from 'antd'
 import { useEffect } from 'react'
 
 function Error() {
-  const { error, setError } = useStore((state) => state)
+  const error = useStore((state) => state.error)
+  const setError = useStore((state) => state.setError)
+
   useEffect(() => {
+    if (!error) return
     const id = setTimeout(() => setError(''), 2000)
     return () => clearTimeout(id)
-  }, [error])
+  }, [error, setError])
 
-  if (!error) return <></>
+  if (!error) return null
 
   return (
     <main className="absolute top-0 z-10 w-full">
