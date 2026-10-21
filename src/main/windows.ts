@@ -10,7 +10,8 @@ const windows: Record<WindowNameType, WindowConfig> = {
   search: {
     id: 0,
     options: {
-      initShow: true,
+      // 启动器类应用：启动后只驻留托盘，快捷键唤起时才显示
+      initShow: false,
       hash: '',
       openDevTools: true,
       width: 500,
@@ -36,8 +37,8 @@ const windows: Record<WindowNameType, WindowConfig> = {
     options: {
       initShow: false,
       openDevTools: false,
-      width: 505,
-      height: 350,
+      width: 480,
+      height: 520,
       frame: true,
       transparent: false,
       hash: '/#config'

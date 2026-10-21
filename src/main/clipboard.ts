@@ -21,12 +21,31 @@ let hookInstance: { stop: () => void } | null = null
 /** 轮询用内存缓存：与"库里的最新一条"等价，用于去重 */
 let lastContent = ''
 
+/**
+ * 唤起面板前记录的最前台应用名：粘贴时要把它调回前台再 Cmd+V，
+ * 否则面板隐藏后焦点未就绪，内容会粘到错误目标或直接丢失
+ */
+let frontmostAppBeforeShow = ''
+
+const captureFrontmostApp = (): void => {
+  if (process.platform !== 'darwin') return
+  exec(
+    `osascript -e 'tell application "System Events" to name of first application process whose frontmost is true'`,
+    (error, stdout) => {
+      if (error) return
+      frontmostAppBeforeShow = stdout.trim()
+    }
+  )
+}
+
 const toggleClipboardWindow = (): void => {
   const win = getByNameWindow('clipboard')
   if (win.isDestroyed()) return
   if (win.isVisible()) {
     win.hide()
   } else {
+    // 必须在面板拿焦点之前记录最前台应用，回车粘贴时才能把内容送回原来的光标处
+    captureFrontmostApp()
     win.show()
     win.focus()
   }
@@ -65,8 +84,18 @@ const startDoubleOptionHook = async (): Promise<void> => {
     const { uIOhook, UiohookKey } = await import('uiohook-napi')
     let firstAltDownAt = 0
     let lastAltDownAt = 0
+    // 诊断用：只打印前 5 个全局按键事件。如果按 Option 后终端没有任何
+    // "[clipboard][debug]" 输出，说明钩子根本没收到事件（权限/事件 tap 问题）
+    let debugKeyDownLeft = 5
 
     uIOhook.on('keydown', (event) => {
+      if (debugKeyDownLeft > 0) {
+        debugKeyDownLeft--
+        console.log(
+          `[clipboard][debug] 收到全局 keydown keycode=${event.keycode} altKey=${event.altKey}` +
+            (debugKeyDownLeft === 0 ? '（诊断日志到此为止）' : '')
+        )
+      }
       const now = Date.now()
       const isAlt =
         event.keycode === UiohookKey.Alt || event.keycode === UiohookKey.AltRight
@@ -90,7 +119,13 @@ const startDoubleOptionHook = async (): Promise<void> => {
       // 期间按下任何其它按键都打断双击判定
       firstAltDownAt = 0
     })
-    uIOhook.start()
+    try {
+      uIOhook.start()
+    } catch (error) {
+      // start 抛错通常是事件 tap 创建失败（权限被拒），与"收不到事件"要区分开
+      console.error('[clipboard] uiohook start() 失败（事件 tap 创建失败，通常是权限问题）', error)
+      return
+    }
     hookInstance = uIOhook
     // 便于排查：start 成功只代表钩子线程起来了，macOS 未授予"输入监控"权限时
     // 事件会被系统静默丢弃（不报错、收不到 keydown），这是双击 Option 无反应的头号原因
@@ -204,15 +239,46 @@ ipcMain.handle('clipboard:paste', (_event: IpcMainInvokeEvent, id: number) => {
   // 用 osascript 模拟 Cmd+V 实现自动粘贴（需要辅助功能权限）；
   // 失败时静默降级为仅写回剪贴板，用户手动 Cmd+V 即可
   if (process.platform === 'darwin') {
-    exec(
-      `osascript -e 'tell application "System Events" to keystroke "v" using command down'`,
-      (error) => {
-        if (error) console.error('自动粘贴失败，内容已写回剪贴板', error)
-      }
-    )
+    // 隐藏面板后焦点不会立刻回到原应用：先等一小会儿，再把唤起面板前
+    // 记录的应用显式调回前台，最后才发 Cmd+V，保证内容粘回原来的光标处
+    const appName = frontmostAppBeforeShow.replace(/["\\]/g, '')
+    const script = [
+      'delay 0.15',
+      'tell application "System Events"',
+      appName
+        ? `set frontmost of (first application process whose name is "${appName}") to true`
+        : null,
+      'delay 0.1',
+      'keystroke "v" using command down',
+      'end tell'
+    ]
+      .filter(Boolean)
+      .join('\n')
+    exec(`osascript <<'AS'
+${script}
+AS`, (error) => {
+      if (error) console.error('自动粘贴失败，内容已写回剪贴板', error)
+    })
   }
   return true
 })
+
+/**
+ * 按配置的保存天数清理过期剪贴板记录，0 或负数表示永久保留。
+ * 每次执行都实时读配置，改完设置无需重启即生效
+ */
+const cleanExpiredItems = (): void => {
+  try {
+    const days = Number(config().clipboardRetentionDays)
+    if (!days || days <= 0) return
+    del(
+      "delete from clipboard_items where created_at < datetime('now', @offset)",
+      { offset: `-${days} days` }
+    )
+  } catch (error) {
+    console.error('清理过期剪贴板记录失败', error)
+  }
+}
 
 /** 启动剪贴板监听（轮询 + 双击 Option 检测），在 app ready 后调用 */
 export const initClipboard = (): void => {
@@ -226,6 +292,9 @@ export const initClipboard = (): void => {
     console.error('初始化剪贴板历史失败', error)
     lastContent = ''
   }
+  // 启动时清一次过期记录，之后每小时清一次（记录以天为粒度过期，无需更频繁）
+  cleanExpiredItems()
+  setInterval(cleanExpiredItems, 60 * 60 * 1000)
   setInterval(pollClipboard, POLL_INTERVAL)
   void startDoubleOptionHook()
 }

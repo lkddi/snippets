@@ -16,10 +16,21 @@ export default async ({ request }) => {
     return { error: `剪贴板快捷键 ${clipShortCut} 注册失败，请换一个组合键` }
   }
 
+  // 保存天数：缺省回落 7 天，非法/超界值夹紧到 0~3650
+  const rawDays = Number(data.clipboardRetentionDays)
+  const retentionDays = Number.isFinite(rawDays)
+    ? Math.max(0, Math.min(3650, Math.floor(rawDays)))
+    : 7
+
+  // 开机启动：formData 里实际是字符串，'true' 才算开；真实生效在切换开关时已通过 IPC 写入系统登录项
+  const launchAtLogin = String(data.launchAtLogin) === 'true'
+
   const content = JSON.stringify({
     shortCut: data.shortCut,
     databaseDirectory: data.databaseDirectory,
-    clipboardShortCut: clipShortCut
+    clipboardShortCut: clipShortCut,
+    clipboardRetentionDays: retentionDays,
+    launchAtLogin
   })
 
   const changes = await window.api.sql<number>(`update config set content=@content where id=1`, 'update', {

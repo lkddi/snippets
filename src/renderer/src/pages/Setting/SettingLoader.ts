@@ -7,7 +7,9 @@ export default async () => {
   const fallback: ConfigDataType = {
     shortCut: '',
     databaseDirectory: '',
-    clipboardShortCut: 'doubleOption'
+    clipboardShortCut: 'doubleOption',
+    clipboardRetentionDays: 7,
+    launchAtLogin: false
   }
   if (!row?.content) return fallback
 

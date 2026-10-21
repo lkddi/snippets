@@ -91,7 +91,7 @@ export const Clipboard = (): JSX.Element => {
 
   return (
     <main className="p-3">
-      <div className="clipboard-page bg-slate-50 rounded-lg p-3">
+      <div className="clipboard-page">
         <section className="drag flex items-center gap-2 pb-2 border-b border-slate-200">
           <Input
             value={keyword}
@@ -126,7 +126,13 @@ export const Clipboard = (): JSX.Element => {
           ))}
           {items.length === 0 && <div className="empty">暂无剪贴板记录</div>}
         </section>
-        <footer className="nodrag flex justify-end">
+        <footer className="nodrag">
+          <span className="clipboard-hint">
+            <kbd>↑</kbd>
+            <kbd>↓</kbd> 选择
+            <kbd>↩</kbd> 粘贴
+            <kbd>esc</kbd> 关闭
+          </span>
           <span
             className="cursor-pointer text-xs text-slate-500 hover:text-red-500 select-none"
             onClick={() => void clearAll()}

@@ -1,21 +1,256 @@
+/** 设置页：Alfred Preferences 风格的分组卡片布局（系统蓝焦点 + 行悬停态） */
+
 .setting-page {
-  @apply bg-slate-100 h-screen p-5;
+  min-height: 100vh;
+  padding: 18px 16px 10px;
+  background: #f5f6f8;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  user-select: none;
+}
+
+.page-header {
+  text-align: center;
+
   h1 {
-    @apply flex justify-center text-sm;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: 4px;
   }
-  section {
-    h5 {
-      @apply text-xs font-bold mb-2 text-slate-700 opacity-80;
-    }
-    @apply border p-3 rounded-md bg-white my-5;
-    input {
-      @apply border w-full outline-none;
-    }
+
+  p {
+    margin: 3px 0 0;
+    font-size: 11px;
+    color: #94a3b8;
   }
-  .clip-hint {
-    @apply text-xs text-slate-400 mt-2 select-none;
+}
+
+.setting-alert {
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+/* ---- 分组卡片 ---- */
+
+.setting-card {
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+  padding: 2px 14px 4px;
+  flex-shrink: 0;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 2px 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 2px;
+  border-radius: 8px;
+  transition: background 0.12s;
+
+  &:hover {
+    background: #fafbfc;
   }
-  .clip-reset {
-    @apply text-blue-600 cursor-pointer ml-1;
+
+  & + .setting-row {
+    border-top: 1px solid #f8fafc;
   }
+}
+
+.row-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.label-main {
+  font-size: 13px;
+  color: #334155;
+}
+
+.label-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.row-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 纯展示性文本（如「常驻」），不可交互 */
+.row-static {
+  font-size: 11px;
+  color: #94a3b8;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* ---- 快捷键录制框（键帽展示） ---- */
+
+.shortcut-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 128px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+  }
+
+  &:focus {
+    border-color: #0a84ff;
+    box-shadow: 0 0 0 3px rgb(10 132 255 / 12%);
+  }
+
+  &[data-empty='true'] {
+    justify-content: center;
+  }
+}
+
+.shortcut-placeholder {
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid #cbd5e1;
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11px;
+  color: #475569;
+}
+
+.mini-btn {
+  height: 24px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 6px;
+  background: #f1f5f9;
+  font-size: 11px;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+/* ---- 保存时长步进器 ---- */
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  padding: 0 2px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:focus-within {
+    border-color: #0a84ff;
+    box-shadow: 0 0 0 3px rgb(10 132 255 / 12%);
+  }
+}
+
+.step-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #f1f5f9;
+  }
+
+  &:disabled {
+    color: #cbd5e1;
+    cursor: default;
+  }
+}
+
+.step-input {
+  width: 34px;
+  height: 24px;
+  border: none;
+  outline: none;
+  text-align: center;
+  font-size: 12px;
+  color: #334155;
+  background: transparent;
+}
+
+.step-unit {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-right: 4px;
+}
+
+/* ---- 存储目录 ---- */
+
+.dir-path {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #64748b;
+  /* rtl 让超长路径省略头部、保留尾部（文件名部分） */
+  direction: rtl;
+  text-align: left;
+}
+
+/* ---- 页脚 ---- */
+
+.page-footer {
+  text-align: center;
+  font-size: 10px;
+  color: #cbd5e1;
+  padding: 2px 0 4px;
 }

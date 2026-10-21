@@ -24,6 +24,10 @@ declare global {
       clipboardPaste: (id: number) => Promise<boolean>
       /** 保存剪贴板快捷键（'doubleOption' 表示双击 Option 模式，直接视为成功） */
       clipboardShortCut: (shortCut: string) => Promise<boolean>
+      /** 读取系统登录项：当前是否开机启动 */
+      getLoginItemSettings: () => Promise<boolean>
+      /** 切换开机启动，返回是否设置成功 */
+      setLoginItemSettings: (enabled: boolean) => Promise<boolean>
       /** 监听剪贴板更新事件，返回取消订阅函数 */
       onClipboardUpdated: (callback: () => void) => () => void
     }

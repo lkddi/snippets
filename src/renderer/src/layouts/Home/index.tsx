@@ -20,8 +20,11 @@ function Home(): JSX.Element {
     <StyleSheetManager shouldForwardProp={isPropValid}>
       <main className="relative p-3" ref={mainRef}>
         <Error />
-        <Search />
-        <Result />
+        {/* Alfred 风格面板外壳：搜索栏与结果列表共用一个圆角容器 */}
+        <div className="launcher-shell">
+          <Search />
+          <Result />
+        </div>
       </main>
     </StyleSheetManager>
   )

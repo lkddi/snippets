@@ -1,0 +1,64 @@
+/** Alfred 5 风格搜索窗：仅搜索栏，结果列表由 Result 组件接在其后 */
+
+/* 外壳：搜索栏与结果列表共用，统一圆角、描边与阴影 */
+.launcher-shell {
+  border: 1px solid rgb(15 23 42 / 8%);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgb(15 23 42 / 22%), 0 2px 8px rgb(15 23 42 / 8%);
+  overflow: hidden;
+  background: rgb(250 250 252 / 96%);
+  backdrop-filter: blur(20px);
+}
+
+.launcher {
+  background: transparent;
+}
+
+/* ---- 搜索栏 ---- */
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 14px;
+  background: #fff;
+  border-bottom: 1px solid rgb(15 23 42 / 6%);
+}
+
+.search-glyph {
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 19px;
+  font-weight: 400;
+  color: #1e293b;
+  caret-color: #0a84ff;
+
+  &::placeholder {
+    color: #c0c8d2;
+  }
+}
+
+.setting-gear {
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, fill 0.15s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+
+  /* icon-park 用 fill 属性画 svg，hover 换色需要穿透到 svg path */
+  &:hover svg path {
+    fill: #0a84ff;
+  }
+}

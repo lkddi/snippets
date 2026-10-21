@@ -1,6 +1,7 @@
-import { SettingOne } from '@icon-park/react'
+import { Search as SearchIcon, SettingOne } from '@icon-park/react'
 import useSearch from '@renderer/hooks/useSearch'
-import { Input } from 'antd'
+import { ChangeEvent } from 'react'
+import './search.scss'
 
 export default function Search() {
   const { handleSearch, search } = useSearch()
@@ -12,26 +13,32 @@ export default function Search() {
   }
 
   return (
-    <main className="bg-slate-50 p-3 rounded-lg drag">
-      <section className="bg-slate-200 p-3 rounded-lg flex items-center gap-1 nodrag">
+    <main className="launcher">
+      {/* Alfred 式搜索栏：左侧放大镜 + 大号输入框，右侧设置入口 */}
+      <section className="search-bar drag">
+        <SearchIcon
+          theme="outline"
+          size="20"
+          fill="#94a3b8"
+          strokeWidth={4}
+          className="search-glyph"
+        />
+        <input
+          className="search-input nodrag"
+          value={search}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => handleSearch(e)}
+          placeholder="搜索应用与片段，支持拼音 / 首字母"
+          autoFocus
+          spellCheck={false}
+        />
         <SettingOne
           theme="outline"
-          size="22"
-          fill="#34495e"
+          size="18"
+          fill="#94a3b8"
           strokeWidth={4}
-          className="cursor-pointer"
+          className="setting-gear nodrag"
           onClick={() => openWindow('code')}
         />
-        <Input value={search} onChange={handleSearch} autoFocus />
-      </section>
-      <section className="text-center select-none text-slate-600 text-xs mt-2 nodrag">
-        向军大叔作品 / 晚八点直播
-        <span
-          className="text-blue-600 cursor-pointer select-none"
-          onClick={() => openWindow('config')}
-        >
-          配置
-        </span>
       </section>
     </main>
   )

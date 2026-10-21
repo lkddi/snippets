@@ -40,7 +40,9 @@ export const config = (): ConfigDataType => {
   const fallback: ConfigDataType = {
     shortCut: '',
     databaseDirectory: '',
-    clipboardShortCut: 'doubleOption'
+    clipboardShortCut: 'doubleOption',
+    clipboardRetentionDays: 7,
+    launchAtLogin: false
   }
   const row = findOne('select * from config where id = 1') as { content: string } | undefined
   if (!row?.content) return fallback

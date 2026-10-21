@@ -62,7 +62,9 @@ function initData(database: SqliteDatabase): void {
         shortCut: 'Alt+Space',
         databaseDirectory: getMainConfig().databaseDirectory || '',
         // 剪贴板默认用连按两次 Option 唤起
-        clipboardShortCut: 'doubleOption'
+        clipboardShortCut: 'doubleOption',
+        // 剪贴板记录默认保存 7 天，0 表示永久
+        clipboardRetentionDays: 7
       })
     })
 

@@ -50,6 +50,13 @@ const api = {
   clipboardShortCut: (shortCut: string) => {
     return ipcRenderer.invoke('clipboardShortCut', shortCut)
   },
+  // 开机启动设置（读取 / 切换系统登录项）
+  getLoginItemSettings: () => {
+    return ipcRenderer.invoke('loginItem:get') as Promise<boolean>
+  },
+  setLoginItemSettings: (enabled: boolean) => {
+    return ipcRenderer.invoke('loginItem:set', enabled) as Promise<boolean>
+  },
   // 监听剪贴板更新，返回取消订阅函数供 React effect 清理
   onClipboardUpdated: (callback: () => void) => {
     const listener = (): void => callback()

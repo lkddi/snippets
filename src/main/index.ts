@@ -9,6 +9,9 @@ import { initTable } from './db/tables'
 import { setMainConfig } from './db/config'
 import { registerAppGlobShortcut } from './shortCut'
 import { getByNameWindow } from './windows'
+import { initAppMenu } from './menu'
+import { initTray } from './tray'
+import './loginItem'
 
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
@@ -32,6 +35,13 @@ app.whenReady().then(() => {
     console.error('初始化数据库失败', error)
   }
 
+  // 应用菜单：提供 Cmd+, 打开设置（macOS 惯例）和 Edit 角色菜单
+  try {
+    initAppMenu()
+  } catch (error) {
+    console.error('初始化应用菜单失败', error)
+  }
+
   // 配置读取依赖数据表，初始化失败时不要让后面的窗口创建一起中断
   try {
     registerAppGlobShortcut()
@@ -47,6 +57,14 @@ app.whenReady().then(() => {
     console.error('初始化剪贴板功能失败', error)
   }
 
+  // 菜单栏托盘：左键唤起搜索窗，右键弹菜单（设置/开机启动/退出）
+  try {
+    initTray()
+  } catch (error) {
+    console.error('初始化托盘失败', error)
+  }
+
+  // 搜索窗只创建不显示，等快捷键或托盘唤起
   getByNameWindow('search')
   getByNameWindow('config')
 
