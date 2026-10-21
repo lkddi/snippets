@@ -25,6 +25,7 @@
     "@electron-toolkit/utils": "^3.0.0",
     "@emotion/is-prop-valid": "^1.2.2",
     "@icon-park/react": "^1.4.2",
+    "@mantine/core": "^7.9.1",
     "@remix-run/router": "^1.15.3",
     "@types/better-sqlite3": "^7.6.10",
     "@types/mockjs": "^1.0.10",

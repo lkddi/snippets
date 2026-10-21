@@ -200,5 +200,5 @@ return globalShortcut.register(shortCut, () => {...})
 
 - `tsc --noEmit -p tsconfig.node.json`：通过，无错误。
 - `tsc --noEmit -p tsconfig.web.json`：除 4 个包（`@icon-park/react`、`classnames`、`styled-components`、`@mantine/core`）因本机依赖安装不完整报 "Cannot find module" 外，业务代码无类型错误；这 4 个包缺失属于环境问题，不是代码问题。
-- 顺带发现：`@mantine/core` 被 `layouts/Config` 直接 import，但 `package.json` 里没有声明（只声明了 `mantine-contextmenu`），建议补上依赖，否则 pnpm 的严格 node_modules 下会构建失败。
+- 顺带发现（已处理）：`@mantine/core` 被 `layouts/Config` 直接 import，但 `package.json` 里没有声明，只作为 `mantine-contextmenu` 的 peer 存在。此前靠 `.npmrc` 的 `shamefully-hoist=true` 才没暴露；一旦关闭提升（如 CI 用默认配置或迁移 pnpm 严格模式）就会 "Cannot find module"。已在 `package.json` 补 `"@mantine/core": "^7.9.1"` 并在 `pnpm-lock.yaml` 的 importer 下补对应条目（复用已有的 7.9.1 快照，未引入新版本解析）。
 
