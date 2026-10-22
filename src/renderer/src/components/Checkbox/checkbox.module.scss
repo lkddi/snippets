@@ -1,8 +1,8 @@
 .checkbox {
   @apply inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-300 bg-white shrink-0 transition-colors;
-  @apply hover:border-blue-400;
+  @apply hover:border-[#0a84ff];
 
   &.checked {
-    @apply bg-blue-600 border-blue-600;
+    @apply bg-[#0a84ff] border-[#0a84ff];
   }
 }

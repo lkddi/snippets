@@ -1,21 +1,35 @@
-@mixin common() {
-  @apply outline-none bg-slate-50;
-}
-.content-page {
-  @apply h-screen;
-  display: grid;
-  grid-template-rows: 50px 30px 1fr;
+/* 片段编辑页：配色对齐设置窗设计语言（#f5f6f8 底 / #e3e8f0 分隔 / #0a84ff 强调） */
 
-  input {
-    @include common();
-    @apply text-lg  p-3;
+.content-page {
+  @apply h-screen bg-white;
+  display: grid;
+  grid-template-rows: 44px 32px 1fr;
+
+  // 标题：无边框大字号，悬停/聚焦时浮现浅灰底，提示"这里可以直接改"
+  > input[name='title'] {
+    @apply text-[15px] font-semibold text-slate-800 px-4 bg-white outline-none;
+    transition: background 0.12s;
+
+    &:hover,
+    &:focus {
+      background: #f5f6f8;
+    }
   }
-  select {
-    @include common();
-    @apply w-full;
+
+  // 分类选择行
+  > select {
+    @apply w-full text-xs text-slate-600 px-4 bg-white outline-none cursor-pointer;
+    border-top: 1px solid #e3e8f0;
+    border-bottom: 1px solid #e3e8f0;
   }
-  textarea {
-    @include common();
-    @apply border-t pt-5 text-sm opacity-90  p-3;
+
+  // 内容区
+  > textarea {
+    @apply text-[13px] leading-relaxed text-slate-700 p-4 bg-white outline-none resize-none;
+    border-top: 1px solid #e3e8f0;
+
+    &::placeholder {
+      @apply text-slate-400;
+    }
   }
 }

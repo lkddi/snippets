@@ -11,7 +11,7 @@ $height: 30px;
 
 .active {
   @include commonLink();
-  @apply bg-blue-600 text-white  rounded-md;
+  @apply bg-[#0a84ff] text-white rounded-md;
 }
 
 .input {

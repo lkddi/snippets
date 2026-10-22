@@ -26,37 +26,43 @@ export const ContentSearch = () => {
 
   return (
     <Form ref={formRef}>
-      <div className="border-b px-2 py-2 flex items-center gap-2">
-        <div className="flex-1 flex items-center gap-1.5 h-7 px-2 rounded-md bg-slate-100 border border-transparent focus-within:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
-          <Search theme="outline" size="13" fill="#94a3b8" strokeWidth={3} />
+      <div className="px-2.5 py-2 flex items-center gap-1.5 bg-white border-b border-[#e3e8f0]">
+        <div className="flex-1 flex items-center gap-1.5 h-7 px-2 rounded-lg bg-[#f5f6f8] border border-[#e3e8f0] focus-within:bg-white focus-within:border-[#0a84ff] focus-within:ring-[3px] focus-within:ring-[#0a84ff]/15 transition-all">
+          <Search theme="outline" size="13" fill="#9aa5b5" strokeWidth={3} />
           <input
             name="searchWord"
             type="text"
             placeholder="搜索片段..."
-            className="outline-none text-xs w-full bg-transparent placeholder:text-slate-400"
+            className="outline-none text-xs w-full bg-transparent text-slate-700 placeholder:text-slate-400"
             onChange={handleChange}
           />
         </div>
 
-        <Add
-          theme="outline"
-          size="18"
-          fill="#334155"
-          strokeWidth={2}
-          className="cursor-pointer hover:text-blue-600"
+        {/* 图标按钮：与设置页侧栏 hover 语言一致（浅灰圆角块） */}
+        <button
+          type="button"
+          title="新建片段"
+          className="p-1 rounded-md text-slate-500 hover:bg-[#e6ebf4] hover:text-[#0a84ff] transition-colors"
           onClick={() => {
             submit(null, { method: 'POST' })
           }}
-        />
+        >
+          <Add theme="outline" size="16" strokeWidth={3} fill="currentColor" />
+        </button>
         {/* 片段批量管理入口 */}
-        <Checklist
-          theme="outline"
-          size="18"
-          fill={contentBatchMode ? '#2563eb' : '#334155'}
-          strokeWidth={2}
-          className="cursor-pointer hover:text-blue-600"
+        <button
+          type="button"
+          title="批量管理"
+          className={[
+            'p-1 rounded-md transition-colors',
+            contentBatchMode
+              ? 'text-[#0a84ff] bg-[#0a84ff]/10'
+              : 'text-slate-500 hover:bg-[#e6ebf4] hover:text-[#0a84ff]'
+          ].join(' ')}
           onClick={() => setContentBatchMode(!contentBatchMode)}
-        />
+        >
+          <Checklist theme="outline" size="16" strokeWidth={3} fill="currentColor" />
+        </button>
       </div>
     </Form>
   )
