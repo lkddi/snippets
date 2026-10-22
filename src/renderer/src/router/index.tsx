@@ -11,11 +11,21 @@ import ContentLoader from '@renderer/pages/Content/ContentLoader'
 import { ContentList } from '@renderer/pages/ContentList'
 import ContentListAction from '@renderer/pages/ContentList/ContentListAction'
 import ContentListLoader from '@renderer/pages/ContentList/ContentListLoader'
-import { Setting } from '@renderer/pages/Setting'
+import { Setting, type SettingSection } from '@renderer/pages/Setting'
 import SettingAction from '@renderer/pages/Setting/SettingAction'
 import SettingLoader from '@renderer/pages/Setting/SettingLoader'
 import { Welcome } from '@renderer/pages/Welcome'
-import { createHashRouter } from 'react-router-dom'
+import { createHashRouter, Navigate } from 'react-router-dom'
+
+/** 设置窗口的分区：左侧导航的每一项对应一个子路由 */
+const SETTING_SECTIONS: SettingSection[] = [
+  'general',
+  'shortcuts',
+  'apps',
+  'search',
+  'clipboard',
+  'data'
+]
 
 const router = createHashRouter([
   {
@@ -30,17 +40,19 @@ const router = createHashRouter([
     errorElement: <RouteError />
   },
   {
+    // 设置窗：左侧导航 + 右侧内容，代码片段也收在这里
     path: 'config',
     element: <Config />,
     errorElement: <RouteError />,
     children: [
-      {
-        index: true,
-        element: <Setting />,
+      { index: true, element: <Navigate to="general" replace /> },
+      ...SETTING_SECTIONS.map((section) => ({
+        path: section,
+        element: <Setting section={section} />,
         loader: SettingLoader,
         action: SettingAction,
         errorElement: <RouteError />
-      },
+      })),
       {
         path: 'category',
         element: <Category />,

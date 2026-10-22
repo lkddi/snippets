@@ -15,6 +15,9 @@ const REPEAT_IGNORE_INTERVAL = 150
 /** 剪贴板专用的已注册快捷键，与 search 的 registeredShortCut 各自独立维护，避免互相 unregister */
 let registeredClipShortCut = ''
 
+/** 当前已注册的剪贴板快捷键（'doubleOption' 时为空），供应用快捷键做占用检测 */
+export const getClipboardShortCut = (): string => registeredClipShortCut
+
 /** 已启动的 uiohook 实例引用：退出前 stop 用，避免强杀 hook 线程 */
 let hookInstance: { stop: () => void } | null = null
 

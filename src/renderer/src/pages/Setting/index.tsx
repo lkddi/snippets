@@ -1,19 +1,34 @@
-import { Clipboard, DatabaseConfig, FolderSearch, Power, SettingOne, WebPage } from '@icon-park/react'
+import ShortCutRecorder from '@renderer/components/ShortCutRecorder'
+import {
+  Clipboard,
+  DatabaseConfig,
+  Earth,
+  FolderSearch,
+  Keyboard,
+  Power,
+  WebPage
+} from '@icon-park/react'
 import { Alert, Switch } from 'antd'
 import classNames from 'classnames'
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Form, useActionData, useLoaderData } from 'react-router-dom'
+import AppShortcuts from './AppShortcuts'
+import WebEngines from './WebEngines'
 import './styles.scss'
 
 type ActionData = { error?: string; ok?: boolean; warning?: string } | undefined
 
-/** 网页搜索引擎选项，key 与主进程 webSearch.ts 的 URL 模板一致 */
-const ENGINES: { key: string; label: string }[] = [
-  { key: 'baidu', label: '百度' },
-  { key: 'google', label: 'Google' },
-  { key: 'bing', label: '必应' },
-  { key: 'duckduckgo', label: 'DuckDuckGo' }
-]
+/** 设置分区：与左侧导航一一对应（代码片段是独立路由，不在这里渲染） */
+export type SettingSection = 'general' | 'shortcuts' | 'apps' | 'search' | 'clipboard' | 'data'
+
+const SECTION_META: Record<SettingSection, { title: string; desc: string }> = {
+  general: { title: '通用', desc: '启动方式、程序坞与菜单栏行为' },
+  shortcuts: { title: '快捷键', desc: '唤起搜索窗与剪贴板面板的全局快捷键' },
+  apps: { title: '应用快捷键', desc: '给单个应用绑定启动 / 隐藏热键，按一下启动，再按一下收起' },
+  search: { title: '搜索', desc: '网页兜底搜索与文件搜索目录' },
+  clipboard: { title: '剪贴板', desc: '历史记录的保存时长' },
+  data: { title: '数据', desc: '片段与剪贴板数据存放位置' }
+}
 
 const isMac = (): boolean => {
   const platform = window.electron?.process?.platform
@@ -21,58 +36,7 @@ const isMac = (): boolean => {
   return navigator.userAgent.includes('Mac')
 }
 
-/**
- * 浏览器给修饰键的 e.code 是「名称 + 方位」形式：ShiftLeft / ControlRight / AltLeft / MetaLeft，
- * 直接判断 code === 'Alt' 永远不成立 —— 这正是之前按什么组合键都录不进去的原因。
- */
-const MODIFIER_BY_CODE: Record<string, string> = {
-  ShiftLeft: 'Shift',
-  ShiftRight: 'Shift',
-  ControlLeft: 'Control',
-  ControlRight: 'Control',
-  AltLeft: 'Alt',
-  AltRight: 'Alt',
-  MetaLeft: 'Meta',
-  MetaRight: 'Meta'
-}
-
-/** 主键名归一：KeyK -> K、Digit1 -> 1，其余（Space / Enter / F4 / ArrowUp）原样保留 */
-const normalizeCode = (code: string): string => {
-  if (/^Key[A-Z]$/.test(code)) return code.slice(3)
-  if (/^Digit\d$/.test(code)) return code.slice(5)
-  return code
-}
-
-/** 内部统一用 Electron 的修饰键名，展示 / 注册时再按平台换成 Command 或 Super */
-const acceleratorName = (code: string): string => {
-  switch (code) {
-    case 'Meta':
-      return isMac() ? 'Command' : 'Super'
-    case 'Control':
-      return 'Control'
-    case 'Alt':
-      return 'Alt'
-    case 'Shift':
-      return 'Shift'
-    default:
-      return code
-  }
-}
-
-/** 至少一个 Command / Control / Option，避免录出 Shift+Space 这种会抢走正常输入的组合 */
-const hasStrongModifier = (keys: string[]): boolean =>
-  keys.some((key) => key === 'Meta' || key === 'Control' || key === 'Alt')
-
-const isValidKey = (code: string): boolean =>
-  /^([A-Z]|Space|F\d{1,2}|Arrow(Up|Down|Left|Right)|Enter|Tab|Backspace|Delete|Escape|\d)$/.test(
-    code
-  )
-
-/** accelerator 拆成键帽展示：'Alt+Space' -> ['Alt', 'Space'] */
-const keyCaps = (accelerator: string): string[] =>
-  accelerator ? accelerator.split('+') : []
-
-export const Setting = () => {
+export const Setting = ({ section }: { section: SettingSection }) => {
   const config = useLoaderData() as ConfigDataType
   const actionData = useActionData() as ActionData
 
@@ -92,6 +56,10 @@ export const Setting = () => {
   const [databaseDirectory, setDatabaseDirectory] = useState(config.databaseDirectory)
   // 网页搜索兜底使用的搜索引擎
   const [engine, setEngine] = useState(config.webSearchEngine || 'baidu')
+  // 全部搜索引擎（内置 + 自定义），可启停 / 增删改
+  const [engines, setEngines] = useState<WebEngineType[]>(
+    Array.isArray(config.webEngines) && config.webEngines.length ? config.webEngines : []
+  )
   // 文件搜索允许扫描的目录（支持多个）
   const [dirs, setDirs] = useState<string[]>(
     Array.isArray(config.searchDirectories) ? config.searchDirectories : []
@@ -102,8 +70,6 @@ export const Setting = () => {
   const [hideDockIcon, setHideDockIcon] = useState(Boolean(config.hideDockIcon))
   // 当前平台是否支持隐藏程序坞图标（仅 macOS）
   const [dockSupported, setDockSupported] = useState(isMac())
-  const keysRef = useRef<string[]>([])
-  const clipKeysRef = useRef<string[]>([])
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
@@ -135,56 +101,6 @@ export const Setting = () => {
   const submitForm = (): void => {
     // 直接提交，由 action 负责注册并把失败原因回显
     requestAnimationFrame(() => formRef.current?.requestSubmit())
-  }
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
-    e.preventDefault()
-    e.stopPropagation()
-    // 修饰键按方位命名（AltLeft 等），必须先归一成 Alt 再记录
-    const modifier = MODIFIER_BY_CODE[e.code]
-    if (modifier) {
-      if (!keysRef.current.includes(modifier)) keysRef.current = [...keysRef.current, modifier]
-      return
-    }
-
-    const code = normalizeCode(e.code)
-    if (!isValidKey(code)) return
-    // 只有修饰键还不够，也要至少一个 Command / Control / Option
-    if (!hasStrongModifier(keysRef.current)) return
-
-    const accelerator = [...keysRef.current, code].map(acceleratorName).join('+')
-    keysRef.current = []
-    setShortCut(accelerator)
-    submitForm()
-  }
-
-  // 剪贴板快捷键的按键采集逻辑与搜索快捷键一致，只是写入不同的 state / 隐藏域
-  const handleClipKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
-    e.preventDefault()
-    e.stopPropagation()
-    const modifier = MODIFIER_BY_CODE[e.code]
-    if (modifier) {
-      if (!clipKeysRef.current.includes(modifier)) {
-        clipKeysRef.current = [...clipKeysRef.current, modifier]
-      }
-      return
-    }
-
-    const code = normalizeCode(e.code)
-    if (!isValidKey(code)) return
-    if (!hasStrongModifier(clipKeysRef.current)) return
-
-    const accelerator = [...clipKeysRef.current, code].map(acceleratorName).join('+')
-    clipKeysRef.current = []
-    setClipShortCut(accelerator)
-    submitForm()
-  }
-
-  // 恢复默认的"连按两次 Option"模式（不占用全局快捷键）
-  const resetClipShortCut = (): void => {
-    clipKeysRef.current = []
-    setClipShortCut('doubleOption')
-    submitForm()
   }
 
   // 只允许输入非负整数；失焦时夹紧到 0~3650 并提交
@@ -219,14 +135,29 @@ export const Setting = () => {
 
   // 清除搜索快捷键（注销全局热键，搜索窗仍可从托盘唤起）
   const clearShortCut = (): void => {
-    keysRef.current = []
     setShortCut('')
+    submitForm()
+  }
+
+  // 恢复默认的"连按两次 Option"模式（不占用全局快捷键）
+  const resetClipShortCut = (): void => {
+    setClipShortCut('doubleOption')
     submitForm()
   }
 
   // 切换网页搜索引擎
   const chooseEngine = (key: string): void => {
     setEngine(key)
+    submitForm()
+  }
+
+  // 引擎列表变化：默认引擎被停用 / 删除时自动退回第一个启用的引擎
+  const handleEnginesChange = (next: WebEngineType[]): void => {
+    setEngines(next)
+    const enabled = next.filter((item) => item.enabled)
+    if (enabled.length > 0 && !enabled.some((item) => item.id === engine)) {
+      setEngine(enabled[0].id)
+    }
     submitForm()
   }
 
@@ -267,12 +198,14 @@ export const Setting = () => {
     submitForm()
   }
 
+  const meta = SECTION_META[section]
+
   return (
     <Form method="POST" ref={formRef}>
       <main className="setting-page">
-        <header className="page-header">
-          <h1>设置</h1>
-          <p>修改即时保存，随时按 Cmd + , 回到这里</p>
+        <header className="section-header">
+          <h1>{meta.title}</h1>
+          <p>{meta.desc}</p>
         </header>
 
         {actionData?.error && (
@@ -282,254 +215,273 @@ export const Setting = () => {
           <Alert type="warning" showIcon message={actionData.warning} className="setting-alert" />
         )}
 
-        <section className="setting-card">
-          <div className="card-head">
-            <SettingOne theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-            <span>快捷键</span>
-          </div>
-
-          <div className="setting-row">
-            <div className="row-label">
-              <span className="label-main">打开搜索</span>
-              <span className="label-sub">全局唤起搜索窗口</span>
-              <span
-                className={classNames('cut-status', {
-                  'is-ok': cutStatus.registered,
-                  'is-bad': Boolean(cutStatus.accelerator) && !cutStatus.registered
-                })}
-              >
-                {cutStatus.registered
-                  ? `已生效：${cutStatus.accelerator}`
-                  : cutStatus.error || '未设置快捷键，点击右侧方框后按下组合键'}
-              </span>
+        {section === 'general' && (
+          <section className="setting-card">
+            <div className="card-head">
+              <Power theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+              <span>启动与外观</span>
             </div>
-            <div className="row-control">
-              <div
-                className="shortcut-box"
-                tabIndex={0}
-                onKeyDown={handleKeyDown}
-                onBlur={() => (keysRef.current = [])}
-                data-empty={!shortCut}
-              >
-                {shortCut ? (
-                  keyCaps(shortCut).map((k) => <kbd key={k}>{k}</kbd>)
-                ) : (
-                  <span className="shortcut-placeholder">点击后按下组合键</span>
-                )}
+
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">登录时启动</span>
+                <span className="label-sub">开机后自动驻留菜单栏，不弹窗口</span>
               </div>
-              {shortCut && (
-                <button type="button" className="mini-btn" onClick={clearShortCut}>
-                  清除
-                </button>
-              )}
+              <Switch checked={launchAtLogin} onChange={handleLaunchChange} size="small" />
             </div>
-            <input type="hidden" name="shortCut" value={shortCut} readOnly />
-          </div>
 
-          <div className="setting-row">
-            <div className="row-label">
-              <span className="label-main">唤起剪贴板</span>
-              <span className="label-sub">全局唤起剪贴板历史</span>
-            </div>
-            <div className="row-control">
-              <div
-                className="shortcut-box"
-                tabIndex={0}
-                onKeyDown={handleClipKeyDown}
-                onBlur={() => (clipKeysRef.current = [])}
-                data-empty={clipShortCut === 'doubleOption' || !clipShortCut}
-              >
-                {clipShortCut && clipShortCut !== 'doubleOption' ? (
-                  keyCaps(clipShortCut).map((k) => <kbd key={k}>{k}</kbd>)
-                ) : (
-                  <>
-                    <kbd>Option</kbd>
-                    <kbd>Option</kbd>
-                  </>
-                )}
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">隐藏程序坞图标</span>
+                <span className="label-sub">开启后只在菜单栏驻留，程序坞不再显示</span>
               </div>
-              <button type="button" className="mini-btn" onClick={resetClipShortCut}>
-                恢复默认
-              </button>
+              <Switch
+                checked={hideDockIcon}
+                onChange={handleDockChange}
+                size="small"
+                disabled={!dockSupported}
+              />
             </div>
-            <input type="hidden" name="clipboardShortCut" value={clipShortCut} readOnly />
-          </div>
-        </section>
 
-        <section className="setting-card">
-          <div className="card-head">
-            <WebPage theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-            <span>网页搜索</span>
-          </div>
-
-          <div className="setting-row">
-            <div className="row-label">
-              <span className="label-main">默认搜索引擎</span>
-              <span className="label-sub">没有本地结果时，在浏览器中打开关键词搜索</span>
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">菜单栏图标</span>
+                <span className="label-sub">点按唤起搜索，右键打开菜单</span>
+              </div>
+              <span className="row-static">常驻</span>
             </div>
-            <div className="seg-group">
-              {ENGINES.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={classNames('seg-btn', { active: engine === item.key })}
-                  onClick={() => chooseEngine(item.key)}
+          </section>
+        )}
+
+        {section === 'shortcuts' && (
+          <section className="setting-card">
+            <div className="card-head">
+              <Keyboard theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+              <span>全局快捷键</span>
+            </div>
+
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">打开搜索</span>
+                <span className="label-sub">全局唤起搜索窗口</span>
+                <span
+                  className={classNames('cut-status', {
+                    'is-ok': cutStatus.registered,
+                    'is-bad': Boolean(cutStatus.accelerator) && !cutStatus.registered
+                  })}
                 >
-                  {item.label}
+                  {cutStatus.registered
+                    ? `已生效：${cutStatus.accelerator}`
+                    : cutStatus.error || '未设置快捷键，点击右侧方框后按下组合键'}
+                </span>
+              </div>
+              <div className="row-control">
+                <ShortCutRecorder
+                  value={shortCut}
+                  onChange={(accelerator) => {
+                    setShortCut(accelerator)
+                    submitForm()
+                  }}
+                />
+                {shortCut && (
+                  <button type="button" className="mini-btn" onClick={clearShortCut}>
+                    清除
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">唤起剪贴板</span>
+                <span className="label-sub">全局唤起剪贴板历史</span>
+              </div>
+              <div className="row-control">
+                <ShortCutRecorder
+                  value={clipShortCut === 'doubleOption' ? '' : clipShortCut}
+                  placeholder="连按两次 Option"
+                  onChange={(accelerator) => {
+                    setClipShortCut(accelerator)
+                    submitForm()
+                  }}
+                />
+                <button type="button" className="mini-btn" onClick={resetClipShortCut}>
+                  恢复默认
                 </button>
-              ))}
+              </div>
             </div>
-            <input type="hidden" name="webSearchEngine" value={engine} readOnly />
-          </div>
-        </section>
+          </section>
+        )}
 
-        <section className="setting-card">
-          <div className="card-head">
-            <FolderSearch theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-            <span>文件搜索</span>
-          </div>
-
-          <div className="setting-row">
-            <div className="row-label">
-              <span className="label-main">搜索目录</span>
-              <span className="label-sub">
-                {dirs.length > 0 ? `已配置 ${dirs.length} 个目录` : '添加目录后即可搜索其中的文件'}
-              </span>
+        {section === 'apps' && (
+          <section className="setting-card">
+            <div className="card-head">
+              <span className="card-head-dot" />
+              <span>按应用绑定</span>
             </div>
-            <div className="row-control">
-              <button type="button" className="mini-btn" onClick={() => void addSearchDir()}>
-                添加目录
-              </button>
-            </div>
-            <input
-              type="hidden"
-              name="searchDirectories"
-              value={JSON.stringify(dirs)}
-              readOnly
-            />
-          </div>
+            <AppShortcuts />
+          </section>
+        )}
 
-          {dirs.length > 0 && (
-            <div className="dir-list">
-              {dirs.map((path) => (
-                <div key={path} className="dir-row">
-                  <span className="dir-row-path" title={path}>
-                    {path}
+        {section === 'search' && (
+          <>
+            <section className="setting-card">
+              <div className="card-head">
+                <WebPage theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+                <span>网页搜索</span>
+              </div>
+
+              <div className="setting-row">
+                <div className="row-label">
+                  <span className="label-main">默认搜索引擎</span>
+                  <span className="label-sub">不带关键字时，用这个引擎搜索关键词</span>
+                </div>
+                <div className="seg-group">
+                  {engines
+                    .filter((item) => item.enabled)
+                    .map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={classNames('seg-btn', { active: engine === item.id })}
+                        onClick={() => chooseEngine(item.id)}
+                      >
+                        {item.name}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="setting-card">
+              <div className="card-head">
+                <Earth theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+                <span>搜索引擎与关键字</span>
+              </div>
+              <WebEngines engines={engines} onChange={handleEnginesChange} />
+            </section>
+
+            <section className="setting-card">
+              <div className="card-head">
+                <FolderSearch theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+                <span>文件搜索</span>
+              </div>
+
+              <div className="setting-row">
+                <div className="row-label">
+                  <span className="label-main">搜索目录</span>
+                  <span className="label-sub">
+                    {dirs.length > 0 ? `已配置 ${dirs.length} 个目录` : '添加目录后即可搜索其中的文件'}
                   </span>
-                  <button type="button" className="mini-btn danger" onClick={() => removeSearchDir(path)}>
-                    移除
+                </div>
+                <div className="row-control">
+                  <button type="button" className="mini-btn" onClick={() => void addSearchDir()}>
+                    添加目录
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+              </div>
 
-        <section className="setting-card">
-          <div className="card-head">
-            <Clipboard theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-            <span>剪贴板</span>
-          </div>
+              {dirs.length > 0 && (
+                <div className="dir-list">
+                  {dirs.map((path) => (
+                    <div key={path} className="dir-row">
+                      <span className="dir-row-path" title={path}>
+                        {path}
+                      </span>
+                      <button
+                        type="button"
+                        className="mini-btn danger"
+                        onClick={() => removeSearchDir(path)}
+                      >
+                        移除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
 
-          <div className="setting-row">
-            <div className="row-label">
-              <span className="label-main">保存时长</span>
-              <span className="label-sub">
-                {Number(retentionDays) > 0 ? `超过 ${retentionDays} 天自动清理` : '永久保留全部记录'}
-              </span>
+        {section === 'clipboard' && (
+          <section className="setting-card">
+            <div className="card-head">
+              <Clipboard theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+              <span>历史记录</span>
             </div>
-            <div className="stepper">
-              <button
-                type="button"
-                className="step-btn"
-                onClick={stepRetention(-7)}
-                disabled={Number(retentionDays) <= 0}
-              >
-                −
-              </button>
-              <input
-                className="step-input"
-                value={retentionDays}
-                onChange={handleRetentionChange}
-                onBlur={handleRetentionBlur}
-              />
-              <span className="step-unit">天</span>
-              <button type="button" className="step-btn" onClick={stepRetention(7)}>
-                ＋
-              </button>
-            </div>
-            <input type="hidden" name="clipboardRetentionDays" value={retentionDays} readOnly />
-          </div>
-        </section>
 
-        <section className="setting-card">
-          <div className="card-head">
-            <Power theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-            <span>通用</span>
-          </div>
-
-          <div className="setting-row">
-            <div className="row-label">
-              <span className="label-main">登录时启动</span>
-              <span className="label-sub">开机后自动驻留菜单栏，不弹窗口</span>
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">保存时长</span>
+                <span className="label-sub">
+                  {Number(retentionDays) > 0
+                    ? `超过 ${retentionDays} 天自动清理`
+                    : '永久保留全部记录'}
+                </span>
+              </div>
+              <div className="stepper">
+                <button
+                  type="button"
+                  className="step-btn"
+                  onClick={stepRetention(-7)}
+                  disabled={Number(retentionDays) <= 0}
+                >
+                  −
+                </button>
+                <input
+                  className="step-input"
+                  value={retentionDays}
+                  onChange={handleRetentionChange}
+                  onBlur={handleRetentionBlur}
+                />
+                <span className="step-unit">天</span>
+                <button type="button" className="step-btn" onClick={stepRetention(7)}>
+                  ＋
+                </button>
+              </div>
             </div>
-            <Switch checked={launchAtLogin} onChange={handleLaunchChange} size="small" />
-            <input
-              type="hidden"
-              name="launchAtLogin"
-              value={String(launchAtLogin)}
-              readOnly
-            />
-          </div>
+          </section>
+        )}
 
-          <div className="setting-row">
-            <div className="row-label">
-              <span className="label-main">隐藏程序坞图标</span>
-              <span className="label-sub">开启后只在菜单栏驻留，程序坞不再显示</span>
+        {section === 'data' && (
+          <section className="setting-card">
+            <div className="card-head">
+              <DatabaseConfig theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+              <span>存储</span>
             </div>
-            <Switch
-              checked={hideDockIcon}
-              onChange={handleDockChange}
-              size="small"
-              disabled={!dockSupported}
-            />
-            <input type="hidden" name="hideDockIcon" value={String(hideDockIcon)} readOnly />
-          </div>
 
-          <div className="setting-row">
-            <div className="row-label">
-              <span className="label-main">菜单栏图标</span>
-              <span className="label-sub">点按唤起搜索，右键打开菜单</span>
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">存储目录</span>
+                <span className="label-sub">数据库文件所在位置</span>
+              </div>
+              <div className="row-control">
+                <span className="dir-path" title={databaseDirectory}>
+                  {databaseDirectory || '默认位置'}
+                </span>
+                <button type="button" className="mini-btn" onClick={() => void chooseDirectory()}>
+                  更改
+                </button>
+              </div>
             </div>
-            <span className="row-static">常驻</span>
-          </div>
-        </section>
+          </section>
+        )}
 
-        <section className="setting-card">
-          <div className="card-head">
-            <DatabaseConfig theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-            <span>数据</span>
-          </div>
-
-          <div className="setting-row">
-            <div className="row-label">
-              <span className="label-main">存储目录</span>
-              <span className="label-sub">数据库文件所在位置</span>
-            </div>
-            <div className="row-control">
-              <span className="dir-path" title={databaseDirectory}>
-                {databaseDirectory || '默认位置'}
-              </span>
-              <button type="button" className="mini-btn" onClick={() => void chooseDirectory()}>
-                更改
-              </button>
-            </div>
-            <input type="hidden" name="databaseDirectory" value={databaseDirectory} readOnly />
-          </div>
-        </section>
+        {/* 所有分区的取值都在这一处提交，避免切换分区时把未显示字段写丢 */}
+        <input type="hidden" name="shortCut" value={shortCut} readOnly />
+        <input type="hidden" name="clipboardShortCut" value={clipShortCut} readOnly />
+        <input type="hidden" name="clipboardRetentionDays" value={retentionDays} readOnly />
+        <input type="hidden" name="databaseDirectory" value={databaseDirectory} readOnly />
+        <input type="hidden" name="launchAtLogin" value={String(launchAtLogin)} readOnly />
+        <input type="hidden" name="hideDockIcon" value={String(hideDockIcon)} readOnly />
+        <input type="hidden" name="webSearchEngine" value={engine} readOnly />
+        <input type="hidden" name="webEngines" value={JSON.stringify(engines)} readOnly />
+        <input type="hidden" name="searchDirectories" value={JSON.stringify(dirs)} readOnly />
 
         <footer className="page-footer">Snippets · 配置保存在本机数据库</footer>
       </main>
     </Form>
   )
 }
+
+export default Setting

@@ -16,6 +16,9 @@ const setStatus = (accelerator: string, registered: boolean, error = ''): void =
   lastStatus = { accelerator, registered, error }
 }
 
+/** 当前已注册的搜索快捷键，供应用快捷键做占用检测 */
+export const getSearchShortCut = (): string => registeredShortCut
+
 const toggleSearchWindow = (): void => {
   const win = getByNameWindow('search')
   if (win.isDestroyed()) return

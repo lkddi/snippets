@@ -6,10 +6,11 @@ import './search.scss'
 export default function Search() {
   const { handleSearch, search } = useSearch()
 
-  // 搜索窗现在是置顶的，打开配置窗之前先把它收起来，否则会压住配置窗
-  const openWindow = (name: WindowNameType): void => {
+  // 搜索窗是置顶浮层，打开设置前先收起，否则会压住设置窗；
+  // 齿轮直接落到「代码片段」页，这是搜索之外最常用的入口
+  const openSettings = (): void => {
     window.api.closeWindow('search')
-    window.api.openWindow(name)
+    window.api.openWindow('config', '#/config/category/contentList')
   }
 
   return (
@@ -37,7 +38,7 @@ export default function Search() {
           fill="#94a3b8"
           strokeWidth={4}
           className="setting-gear nodrag"
-          onClick={() => openWindow('code')}
+          onClick={openSettings}
         />
       </section>
     </main>

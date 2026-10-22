@@ -30,6 +30,8 @@ interface AppEntry {
   nameZh: string
   /** Info.plist 里的图标文件名（CFBundleIconFile / CFBundleIconName） */
   iconFile: string
+  /** CFBundleIdentifier，按应用绑定快捷键时用来判断前台应用 / 隐藏它 */
+  bundleId: string
   /** 各名称的拼音全拼（无声调小写），如「微信」-> weixin、「WeChat」-> wechat */
   pinyinFull: string[]
   /** 各名称的拼音首字母，如「微信」-> wx、「Visual Studio Code」-> vsc */
@@ -103,6 +105,7 @@ const scanApps = (): AppEntry[] => {
           path: fullPath,
           nameZh: '',
           iconFile: '',
+          bundleId: '',
           pinyinFull: [fields.pinyinFull],
           pinyinInitials: [fields.pinyinInitials]
         })
@@ -127,7 +130,7 @@ const normalizeName = (name: string): string => name.toLowerCase().replace(/[\s.
  */
 const readBundleInfo = async (
   appPath: string
-): Promise<{ zhName: string; iconFile: string }> => {
+): Promise<{ zhName: string; iconFile: string; bundleId: string }> => {
   try {
     const resourcesDir = join(appPath, 'Contents', 'Resources')
     const zhLproj = existsSync(resourcesDir)
@@ -143,24 +146,24 @@ const readBundleInfo = async (
       }
     }
 
-    // Info.plist 提供图标文件名，同时兜底中文名
+    // Info.plist 提供图标文件名与 bundleId，同时兜底中文名
     let iconFile = ''
-    if (!zhName || !iconFile) {
-      const { stdout } = await execFileAsync('plutil', [
-        '-convert',
-        'json',
-        '-o',
-        '-',
-        join(appPath, 'Contents', 'Info.plist')
-      ])
-      const data = JSON.parse(stdout) as Record<string, string>
-      if (!zhName) zhName = data.CFBundleDisplayName || data.CFBundleName || ''
-      iconFile = data.CFBundleIconFile || data.CFBundleIconName || ''
-    }
-    return { zhName, iconFile }
+    let bundleId = ''
+    const { stdout } = await execFileAsync('plutil', [
+      '-convert',
+      'json',
+      '-o',
+      '-',
+      join(appPath, 'Contents', 'Info.plist')
+    ])
+    const data = JSON.parse(stdout) as Record<string, string>
+    if (!zhName) zhName = data.CFBundleDisplayName || data.CFBundleName || ''
+    iconFile = data.CFBundleIconFile || data.CFBundleIconName || ''
+    bundleId = data.CFBundleIdentifier || ''
+    return { zhName, iconFile, bundleId }
   } catch {
     // 没有中文名 / 图标信息 / plist 损坏都无所谓，各有兜底
-    return { zhName: '', iconFile: '' }
+    return { zhName: '', iconFile: '', bundleId: '' }
   }
 }
 
@@ -210,6 +213,7 @@ const enrichBundleInfo = async (apps: AppEntry[]): Promise<void> => {
 
   apps.forEach((item, index) => {
     item.iconFile = infos[index].iconFile
+    item.bundleId = infos[index].bundleId
     // 候选本地化名：lproj 里的中文名优先，其次 mdls 的 Finder 显示名
     const candidates = [infos[index].zhName, displayNameMap.get(item.path) ?? '']
     for (const candidate of candidates) {
@@ -353,6 +357,32 @@ const searchApps = async (keyword: string): Promise<AppType[]> => {
 
 ipcMain.handle('apps:search', (_event: IpcMainInvokeEvent, keyword: string) => {
   return searchApps(typeof keyword === 'string' ? keyword : '')
+})
+
+/**
+ * 全部已安装应用（不含图标）。
+ * 设置页「添加应用」需要完整列表做本地过滤，图标按需走 apps:icon 单取，
+ * 避免一次把几百个 base64 图标塞进内存。
+ */
+ipcMain.handle('apps:all', async (): Promise<AppInfoType[]> => {
+  await ensureScanned()
+  return [...appCache]
+    .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+    .map((item) => ({
+      name: item.name,
+      path: item.path,
+      alias: item.nameZh && item.nameZh !== item.name ? item.nameZh : undefined,
+      bundleId: item.bundleId
+    }))
+})
+
+/** 单个应用图标（dataURL），找不到时返回空字符串 */
+ipcMain.handle('apps:icon', async (_event: IpcMainInvokeEvent, path: string) => {
+  if (typeof path !== 'string' || !path) return ''
+  await ensureScanned()
+  const entry = appCache.find((item) => item.path === path)
+  if (!entry) return ''
+  return loadIcon(entry.path, entry.iconFile)
 })
 
 ipcMain.handle('apps:open', async (_event: IpcMainInvokeEvent, path: string) => {

@@ -1,0 +1,164 @@
+/* 设置窗口外壳：左侧导航 + 右侧内容区（窗口 1120×720） */
+
+.settings-shell {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+  background: #f5f6f8;
+  color: #1e293b;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', sans-serif;
+}
+
+/* ---- 左侧导航 ---- */
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 14px 10px 10px;
+  background: #eff2f7;
+  border-right: 1px solid #e3e8f0;
+  user-select: none;
+  overflow-y: auto;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 8px 6px;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: linear-gradient(160deg, #0a84ff, #4b9bff);
+  box-shadow: 0 1px 3px rgb(10 132 255 / 35%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+
+  b {
+    font-size: 12.5px;
+    font-weight: 650;
+    color: #16233a;
+    letter-spacing: 0.2px;
+  }
+
+  i {
+    font-size: 10px;
+    font-style: normal;
+    color: #94a3b8;
+  }
+}
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-group-label {
+  padding: 0 8px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  color: #9aa5b5;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 12.5px;
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+
+  &:hover {
+    background: #e6ebf4;
+    color: #1e293b;
+  }
+
+  &.active {
+    background: #fff;
+    color: #0f172a;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 8%), 0 0 0 1px rgb(15 23 42 / 4%);
+
+    /* 选中态左侧的强调条，替代整块高亮，视觉更轻 */
+    &::before {
+      content: '';
+      position: absolute;
+      left: -10px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      border-radius: 0 2px 2px 0;
+      background: #0a84ff;
+    }
+
+    svg path {
+      fill: #0a84ff;
+    }
+  }
+}
+
+.nav-footer {
+  margin-top: auto;
+  padding: 6px 8px 2px;
+  font-size: 10px;
+  color: #a9b3c1;
+}
+
+/* ---- 右侧内容 ---- */
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #f5f6f8;
+
+  /* react-router 的 Form 会渲染成 <form>，是内容区和滚动容器之间的中间层。
+     不给它高度，里面 height:100% 就按 auto 解析，长页面会被外层 overflow:hidden 直接裁掉。 */
+  > form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* 代码片段页原来是独立窗口的整屏布局，嵌进来后改为填满内容区 */
+  .category-page,
+  .contentList-page,
+  .content-page {
+    width: 100%;
+    height: 100%;
+  }
+
+  .h-screen {
+    height: 100%;
+  }
+
+  .category-page > .content {
+    height: 100%;
+    overflow: hidden;
+  }
+}

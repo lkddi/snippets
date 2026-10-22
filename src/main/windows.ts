@@ -34,7 +34,7 @@ const windows: Record<WindowNameType, WindowConfig> = {
       height: 600,
       frame: true,
       transparent: false,
-      hash: '/#config/category/contentList'
+      hash: '#/config/category/contentList'
     }
   },
   config: {
@@ -42,11 +42,14 @@ const windows: Record<WindowNameType, WindowConfig> = {
     options: {
       initShow: false,
       openDevTools: false,
-      width: 480,
-      height: 520,
+      // 左右分栏设置窗：左侧导航 + 右侧内容，代码片段也嵌在里面，需要更宽的画布
+      width: 1120,
+      height: 720,
+      minWidth: 940,
+      minHeight: 600,
       frame: true,
       transparent: false,
-      hash: '/#config'
+      hash: '#/config/general'
     }
   },
   clipboard: {
@@ -95,9 +98,9 @@ export const findWindow = (name: WindowNameType): BrowserWindow | null => {
  * 搜索窗 / 剪贴板面板是 alwaysOnTop 的浮层，打开设置、片段管理等普通窗口前
  * 必须先收起它们，否则普通窗口会被压在浮层下面（Cmd+, 打开设置时尤其明显）。
  */
-export const showAndFocus = (name: WindowNameType): void => {
+export const showAndFocus = (name: WindowNameType): BrowserWindow => {
   const win = getByNameWindow(name)
-  if (win.isDestroyed()) return
+  if (win.isDestroyed()) return win
 
   if (name !== 'search' && name !== 'clipboard') {
     for (const overlay of ['search', 'clipboard'] as WindowNameType[]) {
@@ -108,6 +111,7 @@ export const showAndFocus = (name: WindowNameType): void => {
 
   win.show()
   win.focus()
+  return win
 }
 
 export const getWindowByEvent = (

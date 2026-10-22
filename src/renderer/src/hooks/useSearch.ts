@@ -133,17 +133,10 @@ export default () => {
     setApps(contents)
     setFiles(matchedFiles)
 
-    // 网页搜索兜底：只要有关键词就提供入口，搜索引擎读自配置
-    const row = (await window.api.sql(`select content from config where id=1`, 'findOne')) as
-      | { content: string }
-      | undefined
-    let engine = 'baidu'
-    try {
-      engine = (JSON.parse(row?.content ?? '{}') as Partial<ConfigDataType>).webSearchEngine || 'baidu'
-    } catch {
-      // 解析失败用默认百度
-    }
-    setWeb({ engine, query: keyword.trim() })
+    // 网页搜索兜底：命中「github 关键词」这类关键字时切到对应引擎，
+    // 否则用设置里的默认引擎（判定逻辑在主进程，配置改了立即生效）
+    const target = await window.api.resolveWebSearch(keyword.trim())
+    setWeb({ engine: target.engine, engineName: target.engineName, query: target.query })
   }
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>): void => {

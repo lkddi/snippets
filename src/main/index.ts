@@ -11,6 +11,7 @@ import './db'
 import { initTable } from './db/tables'
 import { setMainConfig } from './db/config'
 import { registerAppGlobShortcut } from './shortCut'
+import { registerAppShortCuts } from './appShortcuts'
 import { getByNameWindow } from './windows'
 import { initAppMenu } from './menu'
 import { initTray } from './tray'
@@ -59,6 +60,13 @@ app.whenReady().then(() => {
     registerAppClipboardShortCut()
   } catch (error) {
     console.error('初始化剪贴板功能失败', error)
+  }
+
+  // 应用快捷键要在搜索 / 剪贴板之后注册，占用检测才能看到它们已占用的组合键
+  try {
+    registerAppShortCuts()
+  } catch (error) {
+    console.error('注册应用快捷键失败', error)
   }
 
   // 菜单栏托盘：左键唤起搜索窗，右键弹菜单（设置/开机启动/退出）

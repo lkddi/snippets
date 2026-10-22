@@ -6,6 +6,67 @@ const SYSTEM_HINTS: Record<string, string> = {
   'Command+Tab': 'macOS 用它在应用间切换，应用无法接管'
 }
 
+/** 读取当前已保存的应用快捷键绑定（由 appShortCut:* IPC 维护，保存普通设置时要原样保留） */
+const readAppShortCuts = async (): Promise<AppShortcutType[]> => {
+  try {
+    const row = (await window.api.sql<{ content: string }>(
+      `select content from config where id=1`,
+      'findOne'
+    )) as { content: string } | undefined
+    if (!row?.content) return []
+    const parsed = JSON.parse(row.content) as Partial<ConfigDataType>
+    return Array.isArray(parsed.appShortCuts) ? parsed.appShortCuts : []
+  } catch {
+    return []
+  }
+}
+
+/** 搜索引擎列表：隐藏域里是 JSON，逐项清洗；清洗后为空时保留数据库里原有的列表 */
+const parseEngines = (raw: unknown): WebEngineType[] => {
+  try {
+    const parsed = JSON.parse(String(raw ?? '[]'))
+    if (!Array.isArray(parsed)) return []
+    const seen = new Set<string>()
+    const result: WebEngineType[] = []
+    for (const item of parsed as Partial<WebEngineType>[]) {
+      if (!item || typeof item.name !== 'string' || typeof item.keyword !== 'string') continue
+      if (typeof item.url !== 'string') continue
+      const name = item.name.trim()
+      const keyword = item.keyword.trim().toLowerCase()
+      const url = item.url.trim()
+      // 关键字重复或地址缺占位符都视为非法项，直接跳过
+      if (!name || !keyword || seen.has(keyword)) continue
+      if (!/\{(query|q)\}/i.test(url)) continue
+      seen.add(keyword)
+      result.push({
+        id: typeof item.id === 'string' && item.id ? item.id : `custom-${keyword}`,
+        name,
+        keyword,
+        url,
+        enabled: item.enabled !== false,
+        builtin: Boolean(item.builtin)
+      })
+    }
+    return result
+  } catch {
+    return []
+  }
+}
+
+const readWebEngines = async (): Promise<WebEngineType[]> => {
+  try {
+    const row = (await window.api.sql<{ content: string }>(
+      `select content from config where id=1`,
+      'findOne'
+    )) as { content: string } | undefined
+    if (!row?.content) return []
+    const parsed = JSON.parse(row.content) as Partial<ConfigDataType>
+    return Array.isArray(parsed.webEngines) ? parsed.webEngines : []
+  } catch {
+    return []
+  }
+}
+
 export default async ({ request }) => {
   const formData = await request.formData()
   const data = Object.fromEntries(formData) as unknown as ConfigDataType
@@ -36,10 +97,14 @@ export default async ({ request }) => {
   // 程序坞图标：切换开关时已通过 IPC 生效，这里只负责持久化
   const hideDockIcon = String(data.hideDockIcon) === 'true'
 
-  // 网页搜索引擎：非法值回落百度
-  const engine = ['baidu', 'google', 'bing', 'duckduckgo'].includes(data.webSearchEngine)
-    ? data.webSearchEngine
-    : 'baidu'
+  // 搜索引擎：先清洗列表，再从「已启用」的引擎里挑默认项（默认项被停用时退回第一个启用项）
+  const webEngines = parseEngines(data.webEngines)
+  const engines = webEngines.length ? webEngines : await readWebEngines()
+  const enabledEngines = engines.filter((item) => item.enabled)
+  const requestedEngine = String(data.webSearchEngine ?? '')
+  const engine = enabledEngines.some((item) => item.id === requestedEngine)
+    ? requestedEngine
+    : enabledEngines[0]?.id ?? engines[0]?.id ?? 'baidu'
 
   // 文件搜索目录：隐藏域里是 JSON 数组，逐项校验为非空字符串
   let searchDirectories: string[] = []
@@ -60,7 +125,11 @@ export default async ({ request }) => {
     launchAtLogin,
     hideDockIcon,
     webSearchEngine: engine,
-    searchDirectories
+    webEngines: engines,
+    searchDirectories,
+    // 应用快捷键由 appShortCut:* 这组 IPC 单独维护，这里必须原样带回，
+    // 否则每次保存普通设置都会把绑定清空
+    appShortCuts: await readAppShortCuts()
   })
 
   const changes = await window.api.sql<number>(`update config set content=@content where id=1`, 'update', {

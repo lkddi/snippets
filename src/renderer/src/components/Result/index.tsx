@@ -111,7 +111,7 @@ export default function Result() {
               <Earth theme="outline" size="16" fill="currentColor" strokeWidth={4} />
             </span>
             <span className="item-title">
-              用 {ENGINE_LABELS[web.engine] ?? '百度'} 搜索「{web.query}」
+              用 {web.engineName || ENGINE_LABELS[web.engine] || '默认引擎'} 搜索「{web.query}」
             </span>
             <span className="item-subtitle">浏览器打开</span>
           </div>

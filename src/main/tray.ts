@@ -15,11 +15,20 @@ const toggleSearch = (): void => {
   }
 }
 
+/** 打开设置窗并定位到指定分区（代码片段也收在设置里了） */
+const openSettings = (hash?: string): void => {
+  const win = showAndFocus('config')
+  if (hash && !win.isDestroyed()) {
+    void win.webContents.executeJavaScript(`window.location.hash = ${JSON.stringify(hash)}`)
+  }
+}
+
 /** 每次右键弹出时重建菜单，保证「开机启动」勾选状态是最新的 */
 const buildTrayMenu = (): MenuItemConstructorOptions[] => [
   { label: '打开搜索窗', click: () => showAndFocus('search') },
   { label: '剪贴板历史', click: () => showAndFocus('clipboard') },
-  { label: '设置…', click: () => showAndFocus('config') },
+  { label: '代码片段', click: () => openSettings('#/config/category/contentList') },
+  { label: '设置…', click: () => openSettings('#/config/general') },
   { type: 'separator' },
   {
     label: '开机启动',

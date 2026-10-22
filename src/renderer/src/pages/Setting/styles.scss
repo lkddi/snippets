@@ -1,38 +1,81 @@
-/** 设置页：Alfred Preferences 风格的分组卡片布局（系统蓝焦点 + 行悬停态） */
+/** 设置页：左侧导航 + 右侧分组卡片（系统蓝焦点 + 行悬停态） */
 
 .setting-page {
-  min-height: 100vh;
-  padding: 18px 16px 10px;
-  background: #f5f6f8;
+  /* 撑满 form 并自己承担滚动：内容长（如搜索页三个卡片）时能滚，内容短时不留空档 */
+  flex: 1;
+  min-height: 0;
+  padding: 22px 26px 0;
+  background: transparent;
   display: flex;
   flex-direction: column;
   gap: 10px;
   box-sizing: border-box;
   overflow-y: auto;
+  overscroll-behavior: contain;
   user-select: none;
+
+  /* 细滚动条，与浅色设置界面协调（Chromium 生效） */
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 8px;
+    background-clip: padding-box;
+    background-color: #d3dae4;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #bcc6d4;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
-.page-header {
-  text-align: center;
+/* 分区标题：左对齐，与左侧导航的层级呼应 */
+.section-header {
+  padding: 0 2px 2px;
 
   h1 {
     margin: 0;
-    font-size: 15px;
-    font-weight: 700;
-    color: #1e293b;
-    letter-spacing: 4px;
+    font-size: 17px;
+    font-weight: 650;
+    color: #0f172a;
+    letter-spacing: 0.2px;
   }
 
   p {
-    margin: 3px 0 0;
-    font-size: 11px;
+    margin: 4px 0 0;
+    font-size: 11.5px;
     color: #94a3b8;
   }
+}
+
+/* 卡片最大宽度：默认窗口（1120 宽、左栏 208）下正好铺满内容区，
+   继续拉宽窗口时也不会把单行拉得过散 */
+.setting-card,
+.section-header,
+.setting-alert {
+  width: 100%;
+  max-width: 880px;
+  flex-shrink: 0;
 }
 
 .setting-alert {
   border-radius: 8px;
   font-size: 12px;
+}
+
+/* 卡片里只有一段内容时用的弱化小圆点图标位 */
+.card-head-dot {
+  width: 6px;
+  height: 6px;
+  margin: 0 2px;
+  border-radius: 50%;
+  background: #0a84ff;
 }
 
 /* ---- 分组卡片 ---- */
@@ -195,6 +238,19 @@ kbd {
     background: #fee2e2;
     color: #b91c1c;
   }
+
+  /* 主操作按钮（添加应用）：浅蓝底 + 蓝色文字，不与系统蓝实心按钮抢眼 */
+  &.accent {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eff6ff;
+    color: #0a84ff;
+
+    &:hover {
+      background: #e0edff;
+    }
+  }
 }
 
 /* ---- 网页搜索引擎分段按钮 ---- */
@@ -334,8 +390,11 @@ kbd {
 /* ---- 页脚 ---- */
 
 .page-footer {
+  /* 内容不满一屏时贴在底部，内容超长时跟在最后一屏之后 */
+  margin-top: auto;
   text-align: center;
   font-size: 10px;
   color: #cbd5e1;
-  padding: 2px 0 4px;
+  padding: 6px 0 12px;
+  flex-shrink: 0;
 }

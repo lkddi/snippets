@@ -1,0 +1,129 @@
+/* 搜索引擎列表：一行一个引擎，可启停 / 编辑 / 删除 */
+
+.engine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0 10px;
+}
+
+.engine-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border: 1px solid #eef1f5;
+  border-radius: 9px;
+  background: #fcfdfe;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    border-color: #e2e8f0;
+    background: #fafbfc;
+  }
+
+  /* 停用的引擎整行降透明度，但保留可读性 */
+  &.is-off {
+    .engine-name,
+    .engine-key {
+      opacity: 0.55;
+    }
+  }
+}
+
+.engine-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.engine-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.engine-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+.engine-key {
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: #eef4ff;
+  color: #0a84ff;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.engine-tag {
+  padding: 0 5px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.engine-url {
+  font-size: 10.5px;
+  color: #a5b0bf;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.engine-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ---- 编辑弹窗 ---- */
+
+.engine-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 2px 2px;
+}
+
+.engine-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  > span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  > i {
+    font-size: 10.5px;
+    font-style: normal;
+    line-height: 1.5;
+    color: #a5b0bf;
+  }
+
+  &.engine-field-inline {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.engine-error {
+  margin: 0;
+  font-size: 11.5px;
+  color: #dc2626;
+}

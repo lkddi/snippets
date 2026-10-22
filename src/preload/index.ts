@@ -16,8 +16,8 @@ const api = {
   sql: (sql: string, type: SqlActionType, params = {}) => {
     return ipcRenderer.invoke('sql', sql, type, params)
   },
-  openWindow: (name: WindowNameType) => {
-    ipcRenderer.send('openWindow', name)
+  openWindow: (name: WindowNameType, hash?: string) => {
+    ipcRenderer.send('openWindow', name, hash)
   },
   closeWindow: (name: WindowNameType) => {
     ipcRenderer.send('closeWindow', name)
@@ -38,6 +38,27 @@ const api = {
   openApp: (path: string) => {
     return ipcRenderer.invoke('apps:open', path)
   },
+  /** 全部已安装应用（设置页「添加应用」用，不含图标） */
+  listApps: () => {
+    return ipcRenderer.invoke('apps:all') as Promise<AppInfoType[]>
+  },
+  /** 单个应用图标 dataURL */
+  getAppIcon: (path: string) => {
+    return ipcRenderer.invoke('apps:icon', path) as Promise<string>
+  },
+  // 按应用绑定的全局快捷键
+  checkAppShortCut: (accelerator: string, selfPath = '') => {
+    return ipcRenderer.invoke('appShortCut:check', accelerator, selfPath) as Promise<ShortCutCheckType>
+  },
+  listAppShortCuts: () => {
+    return ipcRenderer.invoke('appShortCut:list') as Promise<AppShortcutStateType[]>
+  },
+  setAppShortCut: (entry: AppShortcutType) => {
+    return ipcRenderer.invoke('appShortCut:set', entry) as Promise<{ ok: boolean; error: string }>
+  },
+  removeAppShortCut: (path: string) => {
+    return ipcRenderer.invoke('appShortCut:remove', path) as Promise<boolean>
+  },
   // 文件搜索：搜索配置目录 / 打开结果 / 选择目录 / 清缓存
   searchFiles: (keyword: string) => {
     return ipcRenderer.invoke('files:search', keyword)
@@ -51,7 +72,17 @@ const api = {
   invalidateFiles: () => {
     ipcRenderer.send('files:invalidate')
   },
-  // 网页搜索兜底：用指定搜索引擎打开关键词
+  // 网页搜索兜底：解析「关键字 + 关键词」用哪个引擎，以及打开搜索
+  resolveWebSearch: (query: string) => {
+    return ipcRenderer.invoke('web:resolve', query) as Promise<{
+      engine: string
+      engineName: string
+      query: string
+    }>
+  },
+  listWebEngines: () => {
+    return ipcRenderer.invoke('web:engines') as Promise<WebEngineType[]>
+  },
   openWebSearch: (engine: string, query: string) => {
     return ipcRenderer.invoke('web:open', engine, query)
   },

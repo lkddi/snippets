@@ -1,4 +1,5 @@
 import { db } from './connect'
+import { DEFAULT_WEB_ENGINES, normalizeEngines } from '../webEngines'
 
 type ParamsType = Record<string, any>
 
@@ -45,12 +46,16 @@ export const config = (): ConfigDataType => {
     launchAtLogin: false,
     hideDockIcon: false,
     webSearchEngine: 'baidu',
-    searchDirectories: []
+    webEngines: DEFAULT_WEB_ENGINES,
+    searchDirectories: [],
+    appShortCuts: []
   }
   const row = findOne('select * from config where id = 1') as { content: string } | undefined
   if (!row?.content) return fallback
   try {
-    return { ...fallback, ...(JSON.parse(row.content) as Partial<ConfigDataType>) }
+    const parsed = JSON.parse(row.content) as Partial<ConfigDataType>
+    // 老版本配置里没有 webEngines，这里补上内置清单并做一次清洗
+    return { ...fallback, ...parsed, webEngines: normalizeEngines(parsed.webEngines) }
   } catch (error) {
     console.error('配置内容解析失败', error)
     return fallback

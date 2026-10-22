@@ -1,0 +1,186 @@
+/* 应用快捷键：列表行 + 添加应用弹窗 */
+
+.app-cut-list {
+  display: flex;
+  flex-direction: column;
+  margin: 2px -4px 6px;
+}
+
+.app-cut-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 9px;
+  transition: background 0.12s;
+
+  &:hover {
+    background: #fafbfc;
+  }
+}
+
+.app-cut-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  object-fit: contain;
+}
+
+/* 无图标时的首字母占位块，与搜索结果里的样式保持一致 */
+.app-cut-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  background: linear-gradient(135deg, #eef2f7, #dde3ec);
+}
+
+.app-cut-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.app-cut-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-cut-status {
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.is-ok {
+    color: #15803d;
+  }
+
+  &.is-bad {
+    color: #dc2626;
+  }
+
+  &.is-idle {
+    color: #a3aebd;
+  }
+}
+
+/* 录制框在列表里固定宽度，避免名称长短不一导致参差 */
+.app-cut-recorder {
+  flex-shrink: 0;
+  min-width: 132px;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+}
+
+.app-cut-empty {
+  margin: 2px 0 8px;
+  padding: 16px 12px;
+  border: 1px dashed #dbe1ea;
+  border-radius: 10px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #94a3b8;
+  text-align: center;
+  background: #fcfdfe;
+}
+
+.app-cut-hint {
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: #b0b9c6;
+}
+
+/* ---- 添加应用弹窗 ---- */
+
+.app-picker-list {
+  margin-top: 10px;
+  max-height: 380px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+
+  &:hover:not(.bound) {
+    background: #f4f7fb;
+  }
+
+  &.bound {
+    cursor: default;
+    opacity: 0.55;
+  }
+}
+
+.app-picker-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  object-fit: contain;
+}
+
+.app-picker-name {
+  font-size: 12.5px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.app-picker-sub {
+  font-size: 10.5px;
+  color: #a5b0bf;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+.app-picker-bound {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+.app-picker-empty {
+  padding: 28px 0;
+  text-align: center;
+  font-size: 12px;
+  color: #a5b0bf;
+}
