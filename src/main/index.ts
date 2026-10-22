@@ -6,6 +6,8 @@ import './apps'
 // 文件搜索（files:search / files:open / files:selectDir）与网页搜索（web:open）
 import './files'
 import './webSearch'
+// 说明页：版本 / 最新版检查 / 外链打开
+import './about'
 import { initClipboard, registerAppClipboardShortCut } from './clipboard'
 import './db'
 import { initTable } from './db/tables'

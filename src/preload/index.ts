@@ -106,6 +106,13 @@ const api = {
   pasteSnippet: (content: string) => {
     return ipcRenderer.invoke('snippet:paste', content) as Promise<boolean>
   },
+  // 说明页：当前版本 / GitHub 最新版 / 打开外部链接
+  getAboutInfo: () => {
+    return ipcRenderer.invoke('about:info') as Promise<AboutInfoType>
+  },
+  openExternal: (url: string) => {
+    return ipcRenderer.invoke('about:openUrl', url) as Promise<boolean>
+  },
   // 开机启动设置（读取 / 切换系统登录项）
   getLoginItemSettings: () => {
     return ipcRenderer.invoke('loginItem:get') as Promise<boolean>

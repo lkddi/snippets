@@ -58,6 +58,10 @@ declare global {
       clipboardShortCut: (shortCut: string) => Promise<boolean>
       /** 搜索窗选中片段回车：写回剪贴板并模拟 Cmd+V 粘回唤起前的光标处，然后收起搜索窗 */
       pasteSnippet: (content: string) => Promise<boolean>
+      /** 说明页信息：当前版本 / GitHub 最新版本与下载地址 / 作者信息 */
+      getAboutInfo: () => Promise<AboutInfoType>
+      /** 用系统默认浏览器打开 http/https 链接 */
+      openExternal: (url: string) => Promise<boolean>
       /** 读取系统登录项：当前是否开机启动 */
       getLoginItemSettings: () => Promise<boolean>
       /** 切换开机启动，返回是否设置成功 */

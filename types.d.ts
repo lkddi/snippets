@@ -138,3 +138,14 @@ type ClipboardItemType = {
   content: string
   created_at: string
 }
+
+/** 说明页信息：当前版本 / GitHub 最新版本与下载地址 / 作者信息 */
+type AboutInfoType = {
+  currentVersion: string
+  latestVersion: string
+  releaseUrl: string
+  hasUpdate: boolean
+  /** GitHub 拉取失败（网络不通 / 限流），此时只能展示当前版本 */
+  fetchFailed: boolean
+  author: { name: string; blog: string; repo: string }
+}

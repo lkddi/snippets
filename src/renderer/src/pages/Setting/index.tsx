@@ -2,10 +2,14 @@ import ShortCutRecorder from '@renderer/components/ShortCutRecorder'
 import {
   Clipboard,
   DatabaseConfig,
+  Download,
   Earth,
   FolderSearch,
+  Github,
   Keyboard,
+  Link,
   Power,
+  User,
   WebPage
 } from '@icon-park/react'
 import { Alert, Switch } from 'antd'
@@ -19,7 +23,7 @@ import './styles.scss'
 type ActionData = { error?: string; ok?: boolean; warning?: string } | undefined
 
 /** 设置分区：与左侧导航一一对应（代码片段是独立路由，不在这里渲染） */
-export type SettingSection = 'general' | 'shortcuts' | 'apps' | 'search' | 'clipboard' | 'data'
+export type SettingSection = 'general' | 'shortcuts' | 'apps' | 'search' | 'clipboard' | 'data' | 'about'
 
 const SECTION_META: Record<SettingSection, { title: string; desc: string }> = {
   general: { title: '通用', desc: '启动方式、程序坞与菜单栏行为' },
@@ -27,7 +31,8 @@ const SECTION_META: Record<SettingSection, { title: string; desc: string }> = {
   apps: { title: '应用快捷键', desc: '给单个应用绑定启动 / 隐藏热键，按一下启动，再按一下收起' },
   search: { title: '搜索', desc: '网页兜底搜索与文件搜索目录' },
   clipboard: { title: '剪贴板', desc: '历史记录的保存时长' },
-  data: { title: '数据', desc: '片段与剪贴板数据存放位置' }
+  data: { title: '数据', desc: '片段与剪贴板数据存放位置' },
+  about: { title: '说明', desc: '软件版本、更新与作者信息' }
 }
 
 const isMac = (): boolean => {
@@ -70,6 +75,9 @@ export const Setting = ({ section }: { section: SettingSection }) => {
   const [hideDockIcon, setHideDockIcon] = useState(Boolean(config.hideDockIcon))
   // 当前平台是否支持隐藏程序坞图标（仅 macOS）
   const [dockSupported, setDockSupported] = useState(isMac())
+  // 说明页：版本 / 最新版检查结果
+  const [about, setAbout] = useState<AboutInfoType | null>(null)
+  const [aboutLoading, setAboutLoading] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
@@ -97,6 +105,30 @@ export const Setting = ({ section }: { section: SettingSection }) => {
       cancelled = true
     }
   }, [actionData])
+
+  // 进入说明页时拉一次版本信息
+  useEffect(() => {
+    if (section !== 'about') return
+    let cancelled = false
+    setAboutLoading(true)
+    void window.api.getAboutInfo().then((info) => {
+      if (!cancelled) {
+        setAbout(info)
+        setAboutLoading(false)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [section])
+
+  const refreshAbout = (): void => {
+    setAboutLoading(true)
+    void window.api.getAboutInfo().then((info) => {
+      setAbout(info)
+      setAboutLoading(false)
+    })
+  }
 
   const submitForm = (): void => {
     // 直接提交，由 action 负责注册并把失败原因回显
@@ -465,6 +497,107 @@ export const Setting = ({ section }: { section: SettingSection }) => {
               </div>
             </div>
           </section>
+        )}
+
+        {section === 'about' && (
+          <>
+            <section className="setting-card">
+              <div className="card-head">
+                <Download theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+                <span>版本</span>
+              </div>
+
+              <div className="setting-row">
+                <div className="row-label">
+                  <span className="label-main">软件版本</span>
+                  <span className="label-sub">灵犀 · Alfred 风格启动器</span>
+                </div>
+                <span className="row-static">v{about?.currentVersion ?? '…'}</span>
+              </div>
+
+              <div className="setting-row">
+                <div className="row-label">
+                  <span className="label-main">最新版本</span>
+                  <span className="label-sub">
+                    {aboutLoading
+                      ? '正在检查更新…'
+                      : about?.fetchFailed
+                        ? '检查失败（网络不通或 GitHub 限流）'
+                        : about?.hasUpdate
+                          ? '发现新版本，点击右侧下载'
+                          : '已是最新版本'}
+                  </span>
+                </div>
+                <div className="row-control">
+                  {about && !aboutLoading && !about.fetchFailed && (
+                    <span
+                      className={classNames('cut-status', {
+                        'is-ok': !about.hasUpdate,
+                        'is-bad': about.hasUpdate
+                      })}
+                    >
+                      {about.hasUpdate ? `v${about.latestVersion} 可用` : '已最新'}
+                    </span>
+                  )}
+                  {about?.hasUpdate && (
+                    <button
+                      type="button"
+                      className="mini-btn"
+                      onClick={() => void window.api.openExternal(about.releaseUrl)}
+                    >
+                      去下载
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="mini-btn"
+                    onClick={refreshAbout}
+                    disabled={aboutLoading}
+                  >
+                    重新检查
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="setting-card">
+              <div className="card-head">
+                <User theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+                <span>作者</span>
+              </div>
+
+              <div className="setting-row">
+                <div className="row-label">
+                  <span className="label-main">{about?.author.name ?? 'lkddi'}</span>
+                  <span className="label-sub">灵犀的开发者</span>
+                </div>
+                <div className="row-control">
+                  <button
+                    type="button"
+                    className="mini-btn has-icon"
+                    onClick={() =>
+                      void window.api.openExternal(about?.author.blog ?? 'https://ay.lc')
+                    }
+                  >
+                    <Link theme="outline" size={12} fill="#64748b" strokeWidth={4} />
+                    博客 ay.lc
+                  </button>
+                  <button
+                    type="button"
+                    className="mini-btn has-icon"
+                    onClick={() =>
+                      void window.api.openExternal(
+                        about?.author.repo ?? 'https://github.com/lkddi/snippets'
+                      )
+                    }
+                  >
+                    <Github theme="outline" size={12} fill="#64748b" strokeWidth={4} />
+                    GitHub
+                  </button>
+                </div>
+              </div>
+            </section>
+          </>
         )}
 
         {/* 所有分区的取值都在这一处提交，避免切换分区时把未显示字段写丢 */}

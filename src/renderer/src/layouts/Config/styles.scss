@@ -85,14 +85,27 @@
   height: 30px;
   padding: 0 8px;
   border-radius: 8px;
-  color: #475569;
+  color: #64748b;
   font-size: 12.5px;
   text-decoration: none;
   transition: background 0.12s, color 0.12s, box-shadow 0.12s;
 
+  /* icon-park 线性图标是描边风格：让描边跟随文字颜色，
+     不能用 fill 填充（会把轮廓糊成实心色块）；
+     块级渲染避免基线对齐引入半像素偏移导致发虚 */
+  svg {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  svg :where(path, rect, circle, ellipse, line, polyline, polygon) {
+    fill: none;
+    stroke: currentColor;
+  }
+
   &:hover {
     background: #e6ebf4;
-    color: #1e293b;
+    color: #334155;
   }
 
   &.active {
@@ -113,8 +126,9 @@
       background: #0a84ff;
     }
 
-    svg path {
-      fill: #0a84ff;
+    /* 图标描边转系统蓝，与强调条呼应 */
+    svg :where(path, rect, circle, ellipse, line, polyline, polygon) {
+      stroke: #0a84ff;
     }
   }
 }

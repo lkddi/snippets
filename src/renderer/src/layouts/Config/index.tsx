@@ -4,6 +4,7 @@ import {
   Code,
   DatabaseConfig,
   FolderSearch,
+  Info,
   Keyboard,
   Power
 } from '@icon-park/react'
@@ -31,7 +32,8 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: '/config/apps', label: '应用快捷键', icon: ApplicationOne },
       { to: '/config/search', label: '搜索', icon: FolderSearch },
       { to: '/config/clipboard', label: '剪贴板', icon: Clipboard },
-      { to: '/config/data', label: '数据', icon: DatabaseConfig }
+      { to: '/config/data', label: '数据', icon: DatabaseConfig },
+      { to: '/config/about', label: '说明', icon: Info }
     ]
   },
   {
@@ -69,7 +71,7 @@ export default function Config() {
                       to={item.to}
                       className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
                     >
-                      <Icon theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+                      <Icon theme="outline" size={16} fill="currentColor" strokeWidth={4.6} />
                       <span>{item.label}</span>
                     </NavLink>
                   )

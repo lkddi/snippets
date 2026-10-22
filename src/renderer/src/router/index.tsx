@@ -24,7 +24,8 @@ const SETTING_SECTIONS: SettingSection[] = [
   'apps',
   'search',
   'clipboard',
-  'data'
+  'data',
+  'about'
 ]
 
 const router = createHashRouter([
