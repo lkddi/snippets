@@ -1,6 +1,8 @@
 # Snippets
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Release](https://img.shields.io/github/v/release/lkddi/snippets)](https://github.com/lkddi/snippets/releases/latest)
+[![Platform](https://img.shields.io/badge/platform-macOS%20arm64-lightgrey)](https://github.com/lkddi/snippets/releases/latest)
 
 一个 Alfred 风格的 macOS 桌面启动器，基于 Electron + React + TypeScript 构建。
 
