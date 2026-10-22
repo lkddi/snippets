@@ -5,3 +5,5 @@ out
 *.log*
 .workbuddy/
 .vscode/
+electron.vite.config.*.mjs
+dev-app-update.yml
