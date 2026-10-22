@@ -5,6 +5,8 @@ declare global {
     electron: ElectronAPI
     api: {
       shortCut: (shortCut: string) => Promise<boolean>
+      /** 查询快捷键真实生效状态（注册失败时设置页会红字提示） */
+      getShortCutStatus: () => Promise<ShortCutStatusType>
       setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => void
       sql: <T>(sql: string, type: SqlActionType, params?: Record<string, any>) => Promise<T>
       openWindow: (name: WindowNameType) => void

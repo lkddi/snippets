@@ -1,10 +1,9 @@
 {
   "name": "snippets",
   "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "Alfred 风格的 macOS 桌面启动器：聚合搜索应用/文件/网页、剪贴板历史与代码片段管理",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "lkddi",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",

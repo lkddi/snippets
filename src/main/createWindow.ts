@@ -9,11 +9,13 @@ export interface OptionsType extends Partial<BrowserWindowConstructorOptions> {
   initShow?: boolean
   /** 失焦时自动隐藏窗口（仅剪贴板这类"快取快藏"的面板需要） */
   hideOnBlur?: boolean
+  /** 显示在全部桌面 / 全屏应用之上（启动器窗口用，保证任意 Space 都能唤起） */
+  allWorkspaces?: boolean
 }
 
 export function createWindow(options: OptionsType): BrowserWindow {
   // hideOnBlur 不是 Electron 原生选项，先拆出来避免混进 BrowserWindow 构造参数
-  const { hideOnBlur, ...windowOptions } = options
+  const { hideOnBlur, allWorkspaces, ...windowOptions } = options
   // const { width } = screen.getPrimaryDisplay().workAreaSize
   // Create the browser window.
   const win = new BrowserWindow(
@@ -44,6 +46,11 @@ export function createWindow(options: OptionsType): BrowserWindow {
     win.on('blur', () => {
       if (!win.isDestroyed()) win.hide()
     })
+  }
+
+  // 启动器窗口固定在所有桌面与全屏应用之上，否则换个 Space 按热键看不到窗口
+  if (allWorkspaces && process.platform === 'darwin') {
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   }
 
   if (is.dev && options.openDevTools) {

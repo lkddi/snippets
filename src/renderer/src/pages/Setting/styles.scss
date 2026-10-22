@@ -92,6 +92,22 @@
   color: #94a3b8;
 }
 
+/* 快捷键真实注册状态：成功绿字、失败红字，避免用户误以为设置已生效 */
+.cut-status {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #94a3b8;
+
+  &.is-ok {
+    color: #16a34a;
+  }
+
+  &.is-bad {
+    color: #dc2626;
+  }
+}
+
 .row-control {
   display: flex;
   align-items: center;

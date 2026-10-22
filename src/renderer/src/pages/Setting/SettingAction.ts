@@ -1,3 +1,11 @@
+/** macOS 默认占用这些组合键；用户已在系统设置里关掉对应功能时仍可正常使用，因此只做提示不做拦截 */
+const SYSTEM_HINTS: Record<string, string> = {
+  'Command+Space': 'macOS 默认用它聚焦搜索（Spotlight），需在「系统设置 → 键盘 → 键盘快捷键」里关掉 Spotlight 才能被本应用接管',
+  'Control+Space': 'macOS 默认用它切换输入法，需在「系统设置 → 键盘 → 键盘快捷键」里改掉才能被本应用接管',
+  'Command+Option+Space': 'macOS 默认用它打开访达搜索窗口，需在键盘快捷键里关掉才能被本应用接管',
+  'Command+Tab': 'macOS 用它在应用间切换，应用无法接管'
+}
+
 export default async ({ request }) => {
   const formData = await request.formData()
   const data = Object.fromEntries(formData) as unknown as ConfigDataType
@@ -66,5 +74,9 @@ export default async ({ request }) => {
   // 目录有变化时通知主进程重建文件扫描缓存
   window.api.invalidateFiles()
 
-  return { ok: true }
+  const isMacPlatform = (window.electron?.process?.platform ?? '') === 'darwin'
+  const accelerator = String(data.shortCut).trim()
+  const warning = (isMacPlatform && SYSTEM_HINTS[accelerator]) || ''
+
+  return { ok: true, warning }
 }

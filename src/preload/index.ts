@@ -6,6 +6,10 @@ const api = {
   shortCut: (shortCut: string) => {
     return ipcRenderer.invoke('shortCut', shortCut)
   },
+  /** 查询快捷键真实生效状态（注册失败时设置页会红字提示） */
+  getShortCutStatus: () => {
+    return ipcRenderer.invoke('shortCut:status') as Promise<ShortCutStatusType>
+  },
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => {
     ipcRenderer.send('setIgnoreMouseEvents', ignore, options)
   },

@@ -17,7 +17,12 @@ const windows: Record<WindowNameType, WindowConfig> = {
       width: 500,
       height: 350,
       // 热键唤起后要浮在其他应用之上，否则会被挡在后面
-      alwaysOnTop: true
+      alwaysOnTop: true,
+      // 透明窗口的系统阴影会套在整个窗口矩形上（可见面板之外也是阴影区），
+      // 看起来像面板外面多了一圈描边；立体感交给面板自身的 CSS box-shadow
+      hasShadow: false,
+      // 在任意桌面 / 全屏应用上都能唤起，否则热键只在窗口原本所在的 Space 才有反应
+      allWorkspaces: true
     }
   },
   code: {
@@ -53,6 +58,8 @@ const windows: Record<WindowNameType, WindowConfig> = {
       height: 420,
       // 剪贴板面板参考 Maccy 类工具：frameless 透明置顶，失焦即隐藏
       alwaysOnTop: true,
+      // 同搜索窗：透明窗口关掉原生阴影，避免可见内容外出现一圈灰边
+      hasShadow: false,
       hash: '/#clipboard',
       hideOnBlur: true
     }

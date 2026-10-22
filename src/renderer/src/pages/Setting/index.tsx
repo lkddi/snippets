@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } fro
 import { Form, useActionData, useLoaderData } from 'react-router-dom'
 import './styles.scss'
 
-type ActionData = { error?: string; ok?: boolean } | undefined
+type ActionData = { error?: string; ok?: boolean; warning?: string } | undefined
 
 /** 网页搜索引擎选项，key 与主进程 webSearch.ts 的 URL 模板一致 */
 const ENGINES: { key: string; label: string }[] = [
@@ -21,10 +21,29 @@ const isMac = (): boolean => {
   return navigator.userAgent.includes('Mac')
 }
 
-/** e.code 与 Electron accelerator 名称的映射，直接拼 e.code 会出现 Meta 这种非法键名 */
-const normalizeCode = (code: string): string =>
-  code.replace(/^Left|^Right/, '').replace(/^Key/, '').replace(/^Digit/, '')
+/**
+ * 浏览器给修饰键的 e.code 是「名称 + 方位」形式：ShiftLeft / ControlRight / AltLeft / MetaLeft，
+ * 直接判断 code === 'Alt' 永远不成立 —— 这正是之前按什么组合键都录不进去的原因。
+ */
+const MODIFIER_BY_CODE: Record<string, string> = {
+  ShiftLeft: 'Shift',
+  ShiftRight: 'Shift',
+  ControlLeft: 'Control',
+  ControlRight: 'Control',
+  AltLeft: 'Alt',
+  AltRight: 'Alt',
+  MetaLeft: 'Meta',
+  MetaRight: 'Meta'
+}
 
+/** 主键名归一：KeyK -> K、Digit1 -> 1，其余（Space / Enter / F4 / ArrowUp）原样保留 */
+const normalizeCode = (code: string): string => {
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3)
+  if (/^Digit\d$/.test(code)) return code.slice(5)
+  return code
+}
+
+/** 内部统一用 Electron 的修饰键名，展示 / 注册时再按平台换成 Command 或 Super */
 const acceleratorName = (code: string): string => {
   switch (code) {
     case 'Meta':
@@ -40,8 +59,9 @@ const acceleratorName = (code: string): string => {
   }
 }
 
-const isModifier = (code: string): boolean =>
-  ['Meta', 'Control', 'Alt', 'Shift'].includes(code)
+/** 至少一个 Command / Control / Option，避免录出 Shift+Space 这种会抢走正常输入的组合 */
+const hasStrongModifier = (keys: string[]): boolean =>
+  keys.some((key) => key === 'Meta' || key === 'Control' || key === 'Alt')
 
 const isValidKey = (code: string): boolean =>
   /^([A-Z]|Space|F\d{1,2}|Arrow(Up|Down|Left|Right)|Enter|Tab|Backspace|Delete|Escape|\d)$/.test(
@@ -57,6 +77,12 @@ export const Setting = () => {
   const actionData = useActionData() as ActionData
 
   const [shortCut, setShortCut] = useState(config.shortCut)
+  // 主进程回报的真实注册状态：注册失败时红字提示，避免"看着设置好了其实没生效"
+  const [cutStatus, setCutStatus] = useState<ShortCutStatusType>({
+    accelerator: '',
+    registered: false,
+    error: ''
+  })
   // 剪贴板快捷键：'doubleOption' 为默认的双击 Option 模式
   const [clipShortCut, setClipShortCut] = useState(config.clipboardShortCut || 'doubleOption')
   // 剪贴板保存天数，0 = 永久保留
@@ -95,6 +121,17 @@ export const Setting = () => {
     }
   }, [])
 
+  // 每次保存后回读一次注册状态（actionData 变化即代表刚提交过）
+  useEffect(() => {
+    let cancelled = false
+    void window.api.getShortCutStatus().then((status) => {
+      if (!cancelled && status) setCutStatus(status)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [actionData])
+
   const submitForm = (): void => {
     // 直接提交，由 action 负责注册并把失败原因回显
     requestAnimationFrame(() => formRef.current?.requestSubmit())
@@ -102,17 +139,18 @@ export const Setting = () => {
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     e.preventDefault()
-    const code = normalizeCode(e.code)
-    if (!code) return
-
-    if (isModifier(code)) {
-      // 用 ref 保存已按下的修饰键，避免依赖 state 闭包丢键
-      if (!keysRef.current.includes(code)) keysRef.current = [...keysRef.current, code]
+    e.stopPropagation()
+    // 修饰键按方位命名（AltLeft 等），必须先归一成 Alt 再记录
+    const modifier = MODIFIER_BY_CODE[e.code]
+    if (modifier) {
+      if (!keysRef.current.includes(modifier)) keysRef.current = [...keysRef.current, modifier]
       return
     }
 
-    if (!keysRef.current.length) return
+    const code = normalizeCode(e.code)
     if (!isValidKey(code)) return
+    // 只有修饰键还不够，也要至少一个 Command / Control / Option
+    if (!hasStrongModifier(keysRef.current)) return
 
     const accelerator = [...keysRef.current, code].map(acceleratorName).join('+')
     keysRef.current = []
@@ -123,16 +161,18 @@ export const Setting = () => {
   // 剪贴板快捷键的按键采集逻辑与搜索快捷键一致，只是写入不同的 state / 隐藏域
   const handleClipKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     e.preventDefault()
-    const code = normalizeCode(e.code)
-    if (!code) return
-
-    if (isModifier(code)) {
-      if (!clipKeysRef.current.includes(code)) clipKeysRef.current = [...clipKeysRef.current, code]
+    e.stopPropagation()
+    const modifier = MODIFIER_BY_CODE[e.code]
+    if (modifier) {
+      if (!clipKeysRef.current.includes(modifier)) {
+        clipKeysRef.current = [...clipKeysRef.current, modifier]
+      }
       return
     }
 
-    if (!clipKeysRef.current.length) return
+    const code = normalizeCode(e.code)
     if (!isValidKey(code)) return
+    if (!hasStrongModifier(clipKeysRef.current)) return
 
     const accelerator = [...clipKeysRef.current, code].map(acceleratorName).join('+')
     clipKeysRef.current = []
@@ -238,6 +278,9 @@ export const Setting = () => {
         {actionData?.error && (
           <Alert type="error" showIcon message={actionData.error} className="setting-alert" />
         )}
+        {actionData?.warning && (
+          <Alert type="warning" showIcon message={actionData.warning} className="setting-alert" />
+        )}
 
         <section className="setting-card">
           <div className="card-head">
@@ -249,6 +292,16 @@ export const Setting = () => {
             <div className="row-label">
               <span className="label-main">打开搜索</span>
               <span className="label-sub">全局唤起搜索窗口</span>
+              <span
+                className={classNames('cut-status', {
+                  'is-ok': cutStatus.registered,
+                  'is-bad': Boolean(cutStatus.accelerator) && !cutStatus.registered
+                })}
+              >
+                {cutStatus.registered
+                  ? `已生效：${cutStatus.accelerator}`
+                  : cutStatus.error || '未设置快捷键，点击右侧方框后按下组合键'}
+              </span>
             </div>
             <div className="row-control">
               <div

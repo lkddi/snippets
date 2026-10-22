@@ -58,6 +58,16 @@ type WebSearchType = {
 
 type WindowNameType = 'search' | 'config' | 'code' | 'clipboard'
 
+/** 全局快捷键的当前生效状态，设置页据此显示「已生效 / 未生效」 */
+type ShortCutStatusType = {
+  /** 当前已注册的 accelerator，空字符串表示没有设置 */
+  accelerator: string
+  /** 是否真的注册成功（被系统/其它应用占用时为 false） */
+  registered: boolean
+  /** 最近一次注册失败的原因，注册成功时为空 */
+  error: string
+}
+
 /** 本机已安装应用（应用启动器搜索结果） */
 type AppType = {
   name: string
