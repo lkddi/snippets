@@ -16,6 +16,8 @@
 
     .item {
       @apply flex items-center gap-2 px-2.5 py-1.5 rounded-[10px] cursor-pointer text-slate-700;
+      // 限制单行的布局/样式失效范围：悬停切换高亮时浏览器不必重算整棵列表
+      contain: layout style;
 
       &.active {
         // 系统蓝，与搜索结果选中态一致
