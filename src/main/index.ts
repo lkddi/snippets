@@ -3,6 +3,9 @@ import { app, BrowserWindow } from 'electron'
 import './ipc'
 // 应用启动器：导入即注册 apps:search / apps:open / apps:rescan IPC
 import './apps'
+// 文件搜索（files:search / files:open / files:selectDir）与网页搜索（web:open）
+import './files'
+import './webSearch'
 import { initClipboard, registerAppClipboardShortCut } from './clipboard'
 import './db'
 import { initTable } from './db/tables'
@@ -12,6 +15,7 @@ import { getByNameWindow } from './windows'
 import { initAppMenu } from './menu'
 import { initTray } from './tray'
 import './loginItem'
+import { applyDockIconFromConfig } from './dockIcon'
 
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
@@ -62,6 +66,13 @@ app.whenReady().then(() => {
     initTray()
   } catch (error) {
     console.error('初始化托盘失败', error)
+  }
+
+  // 程序坞图标：按设置隐藏（隐藏后应用只驻留菜单栏）
+  try {
+    applyDockIconFromConfig()
+  } catch (error) {
+    console.error('应用程序坞图标设置失败', error)
   }
 
   // 搜索窗只创建不显示，等快捷键或托盘唤起

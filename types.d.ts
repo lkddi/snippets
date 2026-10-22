@@ -34,6 +34,26 @@ type ConfigDataType = {
   clipboardRetentionDays: number
   /** 是否开机启动（真实状态以系统登录项为准，此值用于设置页回显） */
   launchAtLogin: boolean
+  /** 是否隐藏程序坞（Dock）图标，隐藏后只驻留菜单栏 */
+  hideDockIcon: boolean
+  /** 网页搜索使用的搜索引擎（baidu/google/bing/duckduckgo） */
+  webSearchEngine: string
+  /** 文件搜索允许扫描的目录，支持多个 */
+  searchDirectories: string[]
+}
+
+/** 文件搜索结果 */
+type FileType = {
+  name: string
+  path: string
+  /** 目录或文件，目录在 Finder 中打开，文件用默认应用打开 */
+  isDir: boolean
+}
+
+/** 网页搜索兜底项：当前关键词 + 使用的搜索引擎 */
+type WebSearchType = {
+  engine: string
+  query: string
 }
 
 type WindowNameType = 'search' | 'config' | 'code' | 'clipboard'

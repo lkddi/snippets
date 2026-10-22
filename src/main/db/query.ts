@@ -42,7 +42,10 @@ export const config = (): ConfigDataType => {
     databaseDirectory: '',
     clipboardShortCut: 'doubleOption',
     clipboardRetentionDays: 7,
-    launchAtLogin: false
+    launchAtLogin: false,
+    hideDockIcon: false,
+    webSearchEngine: 'baidu',
+    searchDirectories: []
   }
   const row = findOne('select * from config where id = 1') as { content: string } | undefined
   if (!row?.content) return fallback

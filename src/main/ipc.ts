@@ -1,10 +1,8 @@
 import { ipcMain, IpcMainEvent } from 'electron'
-import { getByNameWindow, getWindowByEvent } from './windows'
+import { getByNameWindow, getWindowByEvent, showAndFocus } from './windows'
 
 ipcMain.on('openWindow', (_event: IpcMainEvent, name: WindowNameType) => {
-  const win = getByNameWindow(name)
-  win.show()
-  win.focus()
+  showAndFocus(name)
 })
 
 ipcMain.on('closeWindow', (_event: IpcMainEvent, name: WindowNameType) => {

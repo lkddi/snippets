@@ -1,16 +1,9 @@
 import { app, Menu, MenuItemConstructorOptions, nativeImage, Tray } from 'electron'
 import icon from '../../resources/icon.png?asset'
-import { getByNameWindow } from './windows'
+import { getByNameWindow, showAndFocus } from './windows'
 import { isLaunchAtLogin, setLaunchAtLogin } from './loginItem'
 
 let tray: Tray | null = null
-
-const showWindow = (name: WindowNameType): void => {
-  const win = getByNameWindow(name)
-  if (win.isDestroyed()) return
-  win.show()
-  win.focus()
-}
 
 const toggleSearch = (): void => {
   const win = getByNameWindow('search')
@@ -18,15 +11,15 @@ const toggleSearch = (): void => {
   if (win.isVisible()) {
     win.hide()
   } else {
-    showWindow('search')
+    showAndFocus('search')
   }
 }
 
 /** 每次右键弹出时重建菜单，保证「开机启动」勾选状态是最新的 */
 const buildTrayMenu = (): MenuItemConstructorOptions[] => [
-  { label: '打开搜索窗', click: () => showWindow('search') },
-  { label: '剪贴板历史', click: () => showWindow('clipboard') },
-  { label: '设置…', click: () => showWindow('config') },
+  { label: '打开搜索窗', click: () => showAndFocus('search') },
+  { label: '剪贴板历史', click: () => showAndFocus('clipboard') },
+  { label: '设置…', click: () => showAndFocus('config') },
   { type: 'separator' },
   {
     label: '开机启动',

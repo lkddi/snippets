@@ -7,6 +7,12 @@ interface StateProps {
   /** 本机应用搜索结果，聚合展示时排在片段前面 */
   apps: AppType[]
   setApps: (apps: AppType[]) => void
+  /** 文件搜索结果（设置里配置的目录），排在应用之后 */
+  files: FileType[]
+  setFiles: (files: FileType[]) => void
+  /** 网页搜索兜底项：有关键词就存在，展示在结果末尾 */
+  web: WebSearchType | null
+  setWeb: (web: WebSearchType | null) => void
   search: string
   setSearch: (search: string) => void
   error: string
@@ -23,12 +29,16 @@ interface StateProps {
  * 并回落到桌面上的另一个数据库，表现为"片段全丢了"。配置现在以数据库 / 主进程文件为准。
  */
 export const useStore = create(
-  persist<StateProps>(
+  persist<StateProps, [], [], Pick<StateProps, 'error' | 'id' | 'editCategoryId'>>(
     (set) => ({
       data: [],
       setData: (data) => set({ data }),
       apps: [],
       setApps: (apps) => set({ apps }),
+      files: [],
+      setFiles: (files) => set({ files }),
+      web: null,
+      setWeb: (web) => set({ web }),
       search: '',
       setSearch: (content) => set({ search: content }),
       error: '',
@@ -40,7 +50,14 @@ export const useStore = create(
     }),
     {
       name: 'houdunren-storage',
-      storage: createJSONStorage(() => localStorage)
+      storage: createJSONStorage(() => localStorage),
+      // 搜索框内容与各类搜索结果都是瞬态数据，持久化后重开搜索窗会
+      // 显示上一次的旧结果（文件/网页兜底尤其明显），这里全部排除
+      partialize: (state) => ({
+        error: state.error,
+        id: state.id,
+        editCategoryId: state.editCategoryId
+      })
     }
   )
 )

@@ -9,7 +9,10 @@ export default async () => {
     databaseDirectory: '',
     clipboardShortCut: 'doubleOption',
     clipboardRetentionDays: 7,
-    launchAtLogin: false
+    launchAtLogin: false,
+    hideDockIcon: false,
+    webSearchEngine: 'baidu',
+    searchDirectories: []
   }
   if (!row?.content) return fallback
 

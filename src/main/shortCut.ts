@@ -19,8 +19,14 @@ const toggleSearchWindow = (): void => {
 
 export const registerSearchShortCut = (shortCut: string, notify = false): boolean => {
   const accelerator = (shortCut || '').trim()
-  // 空快捷键直接跳过：register('') 会抛错
-  if (!accelerator) return false
+  // 空快捷键视为「清除」：注销旧键并返回成功，搜索窗只能靠托盘/菜单唤起
+  if (!accelerator) {
+    if (registeredShortCut && globalShortcut.isRegistered(registeredShortCut)) {
+      globalShortcut.unregister(registeredShortCut)
+    }
+    registeredShortCut = ''
+    return true
+  }
 
   if (registeredShortCut === accelerator && globalShortcut.isRegistered(accelerator)) {
     return true

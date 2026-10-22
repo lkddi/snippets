@@ -6,27 +6,34 @@ export default () => {
   const setData = useStore((state) => state.setData)
   const apps = useStore((state) => state.apps)
   const setApps = useStore((state) => state.setApps)
+  const files = useStore((state) => state.files)
+  const setFiles = useStore((state) => state.setFiles)
+  const web = useStore((state) => state.web)
+  const setWeb = useStore((state) => state.setWeb)
   const search = useStore((state) => state.search)
   const setSearch = useStore((state) => state.setSearch)
   const setId = useStore((state) => state.setId)
 
-  // 合并列表的选中下标：前 apps.length 项是应用，其余是片段
+  // 合并列表的选中下标：应用 → 文件 → 片段 → 网页兜底
   const [activeIndex, setActiveIndex] = useState(0)
-  const total = apps.length + data.length
+  const webCount = web ? 1 : 0
+  const total = apps.length + files.length + data.length + webCount
 
   // 列表变化时把选中项复位到第一条，避免下标越界
   useEffect(() => {
     setActiveIndex(0)
-  }, [apps.length, data.length])
+  }, [apps.length, files.length, data.length, webCount])
 
-  // 清空结果并收起窗口，应用与片段两条执行路径共用
+  // 清空结果并收起窗口，所有执行路径共用
   const clearAndHide = useCallback((): void => {
     setData([])
     setApps([])
+    setFiles([])
+    setWeb(null)
     setSearch('')
     // 之前这里调用不存在的 window.api.hideWindow()，隐藏窗口统一用 closeWindow
     window.api.closeWindow('search')
-  }, [setData, setApps, setSearch])
+  }, [setData, setApps, setFiles, setWeb, setSearch])
 
   // 片段：复制内容后收起（保持原有行为）
   const selectItem = useCallback(
@@ -46,6 +53,22 @@ export default () => {
     },
     [clearAndHide]
   )
+
+  // 文件 / 文件夹：用默认应用打开，主进程成功后收起搜索窗
+  const activateFile = useCallback(
+    async (path: string): Promise<void> => {
+      await window.api.openFile(path)
+      clearAndHide()
+    },
+    [clearAndHide]
+  )
+
+  // 网页搜索兜底：主进程 openExternal 后同样收起搜索窗
+  const activateWeb = useCallback(async (): Promise<void> => {
+    if (!web) return
+    await window.api.openWebSearch(web.engine, web.query)
+    clearAndHide()
+  }, [web, clearAndHide])
 
   const handleKeyEvent = useCallback(
     (e: KeyboardEvent) => {
@@ -68,13 +91,19 @@ export default () => {
             window.api.closeWindow('search')
             return
           }
-          if (activeIndex < apps.length) {
-            // 防御：结果缩短发生在 commit 与 effect 之间时下标可能越界
-            const appItem = apps[activeIndex]
+          // 防御：结果缩短发生在 commit 与 effect 之间时下标可能越界
+          const safeIndex = Math.min(activeIndex, total - 1)
+          if (safeIndex < apps.length) {
+            const appItem = apps[safeIndex]
             if (appItem) void activateApp(appItem.path)
-          } else {
-            const contentId = data[activeIndex - apps.length]?.id
+          } else if (safeIndex < apps.length + files.length) {
+            const fileItem = files[safeIndex - apps.length]
+            if (fileItem) void activateFile(fileItem.path)
+          } else if (safeIndex < apps.length + files.length + data.length) {
+            const contentId = data[safeIndex - apps.length - files.length]?.id
             if (contentId) void selectItem(contentId)
+          } else {
+            void activateWeb()
           }
           break
         }
@@ -84,7 +113,7 @@ export default () => {
         }
       }
     },
-    [total, activeIndex, apps, data, activateApp, selectItem]
+    [total, activeIndex, apps, files, data, activateApp, activateFile, activateWeb, selectItem]
   )
 
   useEffect(() => {
@@ -99,5 +128,17 @@ export default () => {
     setId(data[0]?.id ?? 0)
   }, [data, setId])
 
-  return { apps, data, search, activeIndex, setActiveIndex, activateApp, selectItem }
+  return {
+    apps,
+    files,
+    data,
+    web,
+    search,
+    activeIndex,
+    setActiveIndex,
+    activateApp,
+    activateFile,
+    activateWeb,
+    selectItem
+  }
 }

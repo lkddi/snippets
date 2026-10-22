@@ -1,10 +1,9 @@
 import { app, Menu, MenuItemConstructorOptions } from 'electron'
-import { getByNameWindow } from './windows'
+import { showAndFocus } from './windows'
 
 const openSettings = (): void => {
-  const win = getByNameWindow('config')
-  win.show()
-  win.focus()
+  // showAndFocus 会先收起搜索窗等浮层，保证设置窗在最上面
+  showAndFocus('config')
 }
 
 /**

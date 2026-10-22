@@ -27,7 +27,7 @@ export default function Search() {
           className="search-input nodrag"
           value={search}
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleSearch(e)}
-          placeholder="搜索应用与片段，支持拼音 / 首字母"
+          placeholder="搜索应用 / 文件 / 片段，回车用搜索引擎搜索"
           autoFocus
           spellCheck={false}
         />

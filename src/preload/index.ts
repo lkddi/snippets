@@ -34,6 +34,23 @@ const api = {
   openApp: (path: string) => {
     return ipcRenderer.invoke('apps:open', path)
   },
+  // 文件搜索：搜索配置目录 / 打开结果 / 选择目录 / 清缓存
+  searchFiles: (keyword: string) => {
+    return ipcRenderer.invoke('files:search', keyword)
+  },
+  openFile: (path: string) => {
+    return ipcRenderer.invoke('files:open', path)
+  },
+  selectSearchDirectory: () => {
+    return ipcRenderer.invoke('files:selectDir')
+  },
+  invalidateFiles: () => {
+    ipcRenderer.send('files:invalidate')
+  },
+  // 网页搜索兜底：用指定搜索引擎打开关键词
+  openWebSearch: (engine: string, query: string) => {
+    return ipcRenderer.invoke('web:open', engine, query)
+  },
   // 剪贴板历史
   clipboardList: (keyword = '') => {
     return ipcRenderer.invoke('clipboard:list', keyword)
@@ -56,6 +73,13 @@ const api = {
   },
   setLoginItemSettings: (enabled: boolean) => {
     return ipcRenderer.invoke('loginItem:set', enabled) as Promise<boolean>
+  },
+  // 程序坞图标显示 / 隐藏（macOS）
+  getDockIconSettings: () => {
+    return ipcRenderer.invoke('dock:get') as Promise<{ supported: boolean; hidden: boolean }>
+  },
+  setDockIconHidden: (hidden: boolean) => {
+    return ipcRenderer.invoke('dock:set', hidden) as Promise<boolean>
   },
   // 监听剪贴板更新，返回取消订阅函数供 React effect 清理
   onClipboardUpdated: (callback: () => void) => {

@@ -46,6 +46,16 @@
         background: linear-gradient(135deg, #dbeafe, #bfdbfe);
         color: #1d4ed8;
       }
+
+      &.file {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #b45309;
+      }
+
+      &.web {
+        background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+        color: #4338ca;
+      }
     }
 
     .item-title {
@@ -62,6 +72,11 @@
       font-size: 11px;
       color: #a5b0bf;
       font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+
+    /* 文件结果副标题：显示类型而非路径，路径放 title 悬浮提示 */
+    .item-path {
+      font-family: inherit;
     }
 
     &.active {

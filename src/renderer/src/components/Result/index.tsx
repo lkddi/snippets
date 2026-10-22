@@ -1,14 +1,28 @@
 import useSelect from '@renderer/hooks/useSelect'
 import { Fragment } from 'react'
-import { FileCodeOne } from '@icon-park/react'
+import { Earth, FileCodeOne, FileText, FolderClose } from '@icon-park/react'
 import classNames from 'classnames'
 import './styles.scss'
 
+/** 网页搜索引擎显示名（与 webSearch.ts 的模板一一对应） */
+const ENGINE_LABELS: Record<string, string> = {
+  baidu: '百度',
+  google: 'Google',
+  bing: '必应',
+  duckduckgo: 'DuckDuckGo'
+}
+
 export default function Result() {
-  const { apps, data, activeIndex, setActiveIndex, activateApp, selectItem } = useSelect()
+  const { apps, files, data, web, activeIndex, setActiveIndex, activateApp, activateFile, activateWeb, selectItem } =
+    useSelect()
+
+  // 文件与网页兜底在各自分组的下标偏移
+  const filesOffset = apps.length
+  const dataOffset = filesOffset + files.length
+  const webIndex = dataOffset + data.length
 
   // 无结果时保留容器（保持搜索窗背景完整），但不渲染分组
-  if (apps.length === 0 && data.length === 0) return <main className="result" />
+  if (apps.length === 0 && files.length === 0 && data.length === 0 && !web) return <main className="result" />
 
   return (
     <main className="result">
@@ -36,12 +50,39 @@ export default function Result() {
           ))}
         </Fragment>
       )}
+      {files.length > 0 && (
+        <Fragment>
+          <div className="group-label">文件</div>
+          {files.map((item, index) => {
+            const itemIndex = filesOffset + index
+            return (
+              <div
+                key={item.path}
+                className={classNames('item', { active: itemIndex === activeIndex })}
+                onClick={() => void activateFile(item.path)}
+                onMouseEnter={() => setActiveIndex(itemIndex)}
+              >
+                <span className="item-icon item-fallback file">
+                  {item.isDir ? (
+                    <FolderClose theme="outline" size="16" fill="currentColor" strokeWidth={4} />
+                  ) : (
+                    <FileText theme="outline" size="16" fill="currentColor" strokeWidth={4} />
+                  )}
+                </span>
+                <span className="item-title">{item.name}</span>
+                <span className="item-subtitle item-path" title={item.path}>
+                  {item.isDir ? '文件夹' : '文件'}
+                </span>
+              </div>
+            )
+          })}
+        </Fragment>
+      )}
       {data.length > 0 && (
         <Fragment>
           <div className="group-label">片段</div>
           {data.map((item, index) => {
-            // 片段的选中下标要加上前面应用的数量
-            const itemIndex = apps.length + index
+            const itemIndex = dataOffset + index
             return (
               <div
                 key={item.id}
@@ -56,6 +97,24 @@ export default function Result() {
               </div>
             )
           })}
+        </Fragment>
+      )}
+      {web && (
+        <Fragment>
+          <div className="group-label">网页</div>
+          <div
+            className={classNames('item', { active: webIndex === activeIndex })}
+            onClick={() => void activateWeb()}
+            onMouseEnter={() => setActiveIndex(webIndex)}
+          >
+            <span className="item-icon item-fallback web">
+              <Earth theme="outline" size="16" fill="currentColor" strokeWidth={4} />
+            </span>
+            <span className="item-title">
+              用 {ENGINE_LABELS[web.engine] ?? '百度'} 搜索「{web.query}」
+            </span>
+            <span className="item-subtitle">浏览器打开</span>
+          </div>
         </Fragment>
       )}
     </main>

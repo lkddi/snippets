@@ -20,6 +20,9 @@ const appDirectories = (): string[] => [
   join(homedir(), 'Applications')
 ]
 
+/** 扫描子目录的层级上限：覆盖 /System/Applications/Utilities、/Applications/Adobe 这类分组目录 */
+const MAX_SCAN_DEPTH = 2
+
 interface AppEntry {
   name: string
   path: string
@@ -75,28 +78,41 @@ const isMainApp = (fileName: string): boolean =>
 /** 扫描各应用目录的顶层 .app 包（只读文件名，速度极快；中文名随后异步补齐） */
 const scanApps = (): AppEntry[] => {
   const apps: AppEntry[] = []
-  for (const dir of appDirectories()) {
-    let entries: string[] = []
+  const seen = new Set<string>()
+
+  /** 递归一层：/System/Applications/Utilities、/Applications/Adobe 等分组目录里的应用也要能搜到 */
+  const walk = (dir: string, depth: number): void => {
+    let entries
     try {
-      entries = readdirSync(dir)
+      entries = readdirSync(dir, { withFileTypes: true })
     } catch {
-      // 目录不存在（如用户没有 ~/Applications）直接跳过
-      continue
+      // 目录不存在（如用户没有 ~/Applications）/ 无权限，直接跳过
+      return
     }
-    for (const fileName of entries) {
-      if (!isMainApp(fileName)) continue
-      const name = fileName.replace(/\.app$/i, '')
-      const fields = buildPinyinFields(name)
-      apps.push({
-        name,
-        path: join(dir, fileName),
-        nameZh: '',
-        iconFile: '',
-        pinyinFull: [fields.pinyinFull],
-        pinyinInitials: [fields.pinyinInitials]
-      })
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue
+      const fullPath = join(dir, entry.name)
+
+      if (isMainApp(entry.name)) {
+        if (seen.has(fullPath)) continue
+        seen.add(fullPath)
+        const name = entry.name.replace(/\.app$/i, '')
+        const fields = buildPinyinFields(name)
+        apps.push({
+          name,
+          path: fullPath,
+          nameZh: '',
+          iconFile: '',
+          pinyinFull: [fields.pinyinFull],
+          pinyinInitials: [fields.pinyinInitials]
+        })
+      } else if (entry.isDirectory() && depth < MAX_SCAN_DEPTH) {
+        walk(fullPath, depth + 1)
+      }
     }
   }
+
+  for (const dir of appDirectories()) walk(dir, 1)
   return apps
 }
 
@@ -149,23 +165,65 @@ const readBundleInfo = async (
 }
 
 /**
+ * 批量读取 Finder 显示名（系统本地化名）。
+ * 系统设置、磁盘工具这类应用的中文名不在 InfoPlist.strings 里，而是放在
+ * InfoPlist.loctable，读不到文本；mdls 会返回当前系统语言下的显示名（系统设置 / 磁盘工具）。
+ * mdls 一次可传多个路径，输出按入参顺序每行一条，因此按块批量调用即可。
+ */
+const readDisplayNames = async (paths: string[]): Promise<(string | undefined)[]> => {
+  const CHUNK = 40
+  const names: (string | undefined)[] = []
+  for (let start = 0; start < paths.length; start += CHUNK) {
+    const chunk = paths.slice(start, start + CHUNK)
+    try {
+      const { stdout } = await execFileAsync('mdls', ['-name', 'kMDItemDisplayName', ...chunk], {
+        maxBuffer: 4 * 1024 * 1024
+      })
+      const lines = stdout.split('\n').filter((line) => line.includes('kMDItemDisplayName'))
+      chunk.forEach((_, index) => {
+        const match = lines[index]?.match(/kMDItemDisplayName\s*=\s*"?(.*?)"?\s*$/)
+        const value = match?.[1]
+        names.push(value && value !== '(null)' ? value : undefined)
+      })
+    } catch {
+      chunk.forEach(() => names.push(undefined))
+    }
+  }
+  return names
+}
+
+/**
  * 为所有应用补齐本地化中文名 / 图标文件名，并把中文名的拼音字段合并进检索集合。
  * 并行执行，全部完成后中文名搜索才可用；因此应用启动时预跑一遍。
  */
 const enrichBundleInfo = async (apps: AppEntry[]): Promise<void> => {
-  await Promise.all(
-    apps.map(async (item) => {
-      const { zhName, iconFile } = await readBundleInfo(item.path)
-      item.iconFile = iconFile
-      if (!zhName) return
-      item.nameZh = zhName
-      // 中文名与文件名实质相同（如 wpsoffice -> WPS Office）就不重复收录拼音
-      if (normalizeName(zhName) === normalizeName(item.name)) return
-      const fields = buildPinyinFields(zhName)
-      item.pinyinFull.push(fields.pinyinFull)
-      item.pinyinInitials.push(fields.pinyinInitials)
-    })
-  )
+  const infos = await Promise.all(apps.map((item) => readBundleInfo(item.path)))
+
+  // mdls 一次调用可查多个路径，全部应用一起查（约 3 次进程调用），
+  // 因为 Info.plist 兜底会给出英文名，光看 lproj 为空无法判断是否真有本地化名
+  const displayNames = await readDisplayNames(apps.map((item) => item.path))
+  const displayNameMap = new Map<string, string>()
+  apps.forEach((item, index) => {
+    const name = displayNames[index]
+    if (name) displayNameMap.set(item.path, name)
+  })
+
+  apps.forEach((item, index) => {
+    item.iconFile = infos[index].iconFile
+    // 候选本地化名：lproj 里的中文名优先，其次 mdls 的 Finder 显示名
+    const candidates = [infos[index].zhName, displayNameMap.get(item.path) ?? '']
+    for (const candidate of candidates) {
+      if (!candidate) continue
+      // 与文件名实质相同（如 wpsoffice -> WPS Office）就不重复收录
+      if (normalizeName(candidate) === normalizeName(item.name)) continue
+      if (!item.nameZh) item.nameZh = candidate
+      const fields = buildPinyinFields(candidate)
+      if (fields.pinyinFull && !item.pinyinFull.includes(fields.pinyinFull)) {
+        item.pinyinFull.push(fields.pinyinFull)
+        item.pinyinInitials.push(fields.pinyinInitials)
+      }
+    }
+  })
 }
 
 /** 首次搜索 / 启动时扫盘 + 补中文名，结果缓存复用 */

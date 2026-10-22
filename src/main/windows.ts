@@ -83,6 +83,26 @@ export const findWindow = (name: WindowNameType): BrowserWindow | null => {
   return existed && !existed.isDestroyed() ? existed : null
 }
 
+/**
+ * 显示并聚焦窗口。
+ * 搜索窗 / 剪贴板面板是 alwaysOnTop 的浮层，打开设置、片段管理等普通窗口前
+ * 必须先收起它们，否则普通窗口会被压在浮层下面（Cmd+, 打开设置时尤其明显）。
+ */
+export const showAndFocus = (name: WindowNameType): void => {
+  const win = getByNameWindow(name)
+  if (win.isDestroyed()) return
+
+  if (name !== 'search' && name !== 'clipboard') {
+    for (const overlay of ['search', 'clipboard'] as WindowNameType[]) {
+      const overlayWin = findWindow(overlay)
+      if (overlayWin && overlayWin.isVisible()) overlayWin.hide()
+    }
+  }
+
+  win.show()
+  win.focus()
+}
+
 export const getWindowByEvent = (
   event: IpcMainEvent | IpcMainInvokeEvent
 ): BrowserWindow | null => {

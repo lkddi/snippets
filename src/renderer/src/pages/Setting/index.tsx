@@ -1,10 +1,19 @@
-import { Clipboard, DatabaseConfig, Power, SettingOne } from '@icon-park/react'
+import { Clipboard, DatabaseConfig, FolderSearch, Power, SettingOne, WebPage } from '@icon-park/react'
 import { Alert, Switch } from 'antd'
+import classNames from 'classnames'
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { Form, useActionData, useLoaderData } from 'react-router-dom'
 import './styles.scss'
 
 type ActionData = { error?: string; ok?: boolean } | undefined
+
+/** 网页搜索引擎选项，key 与主进程 webSearch.ts 的 URL 模板一致 */
+const ENGINES: { key: string; label: string }[] = [
+  { key: 'baidu', label: '百度' },
+  { key: 'google', label: 'Google' },
+  { key: 'bing', label: '必应' },
+  { key: 'duckduckgo', label: 'DuckDuckGo' }
+]
 
 const isMac = (): boolean => {
   const platform = window.electron?.process?.platform
@@ -55,8 +64,18 @@ export const Setting = () => {
     String(config.clipboardRetentionDays ?? 7)
   )
   const [databaseDirectory, setDatabaseDirectory] = useState(config.databaseDirectory)
+  // 网页搜索兜底使用的搜索引擎
+  const [engine, setEngine] = useState(config.webSearchEngine || 'baidu')
+  // 文件搜索允许扫描的目录（支持多个）
+  const [dirs, setDirs] = useState<string[]>(
+    Array.isArray(config.searchDirectories) ? config.searchDirectories : []
+  )
   // 开机启动：真实状态以系统登录项为准，配置里的值只做初始回显
   const [launchAtLogin, setLaunchAtLogin] = useState(Boolean(config.launchAtLogin))
+  // 程序坞图标：隐藏后应用只驻留菜单栏
+  const [hideDockIcon, setHideDockIcon] = useState(Boolean(config.hideDockIcon))
+  // 当前平台是否支持隐藏程序坞图标（仅 macOS）
+  const [dockSupported, setDockSupported] = useState(isMac())
   const keysRef = useRef<string[]>([])
   const clipKeysRef = useRef<string[]>([])
   const formRef = useRef<HTMLFormElement>(null)
@@ -65,6 +84,11 @@ export const Setting = () => {
     let cancelled = false
     void window.api.getLoginItemSettings().then((enabled) => {
       if (!cancelled) setLaunchAtLogin(Boolean(enabled))
+    })
+    void window.api.getDockIconSettings().then((result) => {
+      if (cancelled) return
+      setDockSupported(Boolean(result?.supported))
+      setHideDockIcon(Boolean(result?.hidden))
     })
     return () => {
       cancelled = true
@@ -153,6 +177,48 @@ export const Setting = () => {
     })
   }
 
+  // 清除搜索快捷键（注销全局热键，搜索窗仍可从托盘唤起）
+  const clearShortCut = (): void => {
+    keysRef.current = []
+    setShortCut('')
+    submitForm()
+  }
+
+  // 切换网页搜索引擎
+  const chooseEngine = (key: string): void => {
+    setEngine(key)
+    submitForm()
+  }
+
+  // 添加文件搜索目录：弹系统目录选择框，去重后追加
+  const addSearchDir = async (): Promise<void> => {
+    const path = await window.api.selectSearchDirectory()
+    if (!path || dirs.includes(path)) return
+    const next = [...dirs, path]
+    setDirs(next)
+    window.api.invalidateFiles()
+    submitForm()
+  }
+
+  // 移除文件搜索目录
+  const removeSearchDir = (path: string): void => {
+    setDirs(dirs.filter((d) => d !== path))
+    window.api.invalidateFiles()
+    submitForm()
+  }
+
+  // 程序坞图标：先让主进程生效，成功后再持久化（失败时开关自动回弹）
+  const handleDockChange = (checked: boolean): void => {
+    setHideDockIcon(checked)
+    void window.api.setDockIconHidden(checked).then((ok) => {
+      if (!ok) {
+        setHideDockIcon(!checked)
+        return
+      }
+      submitForm()
+    })
+  }
+
   const chooseDirectory = async (): Promise<void> => {
     const path = await window.api.selectDatabaseDirectory()
     if (!path) return
@@ -184,17 +250,24 @@ export const Setting = () => {
               <span className="label-main">打开搜索</span>
               <span className="label-sub">全局唤起搜索窗口</span>
             </div>
-            <div
-              className="shortcut-box"
-              tabIndex={0}
-              onKeyDown={handleKeyDown}
-              onBlur={() => (keysRef.current = [])}
-              data-empty={!shortCut}
-            >
-              {shortCut ? (
-                keyCaps(shortCut).map((k) => <kbd key={k}>{k}</kbd>)
-              ) : (
-                <span className="shortcut-placeholder">点击后按下组合键</span>
+            <div className="row-control">
+              <div
+                className="shortcut-box"
+                tabIndex={0}
+                onKeyDown={handleKeyDown}
+                onBlur={() => (keysRef.current = [])}
+                data-empty={!shortCut}
+              >
+                {shortCut ? (
+                  keyCaps(shortCut).map((k) => <kbd key={k}>{k}</kbd>)
+                ) : (
+                  <span className="shortcut-placeholder">点击后按下组合键</span>
+                )}
+              </div>
+              {shortCut && (
+                <button type="button" className="mini-btn" onClick={clearShortCut}>
+                  清除
+                </button>
               )}
             </div>
             <input type="hidden" name="shortCut" value={shortCut} readOnly />
@@ -228,6 +301,75 @@ export const Setting = () => {
             </div>
             <input type="hidden" name="clipboardShortCut" value={clipShortCut} readOnly />
           </div>
+        </section>
+
+        <section className="setting-card">
+          <div className="card-head">
+            <WebPage theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+            <span>网页搜索</span>
+          </div>
+
+          <div className="setting-row">
+            <div className="row-label">
+              <span className="label-main">默认搜索引擎</span>
+              <span className="label-sub">没有本地结果时，在浏览器中打开关键词搜索</span>
+            </div>
+            <div className="seg-group">
+              {ENGINES.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={classNames('seg-btn', { active: engine === item.key })}
+                  onClick={() => chooseEngine(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <input type="hidden" name="webSearchEngine" value={engine} readOnly />
+          </div>
+        </section>
+
+        <section className="setting-card">
+          <div className="card-head">
+            <FolderSearch theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+            <span>文件搜索</span>
+          </div>
+
+          <div className="setting-row">
+            <div className="row-label">
+              <span className="label-main">搜索目录</span>
+              <span className="label-sub">
+                {dirs.length > 0 ? `已配置 ${dirs.length} 个目录` : '添加目录后即可搜索其中的文件'}
+              </span>
+            </div>
+            <div className="row-control">
+              <button type="button" className="mini-btn" onClick={() => void addSearchDir()}>
+                添加目录
+              </button>
+            </div>
+            <input
+              type="hidden"
+              name="searchDirectories"
+              value={JSON.stringify(dirs)}
+              readOnly
+            />
+          </div>
+
+          {dirs.length > 0 && (
+            <div className="dir-list">
+              {dirs.map((path) => (
+                <div key={path} className="dir-row">
+                  <span className="dir-row-path" title={path}>
+                    {path}
+                  </span>
+                  <button type="button" className="mini-btn danger" onClick={() => removeSearchDir(path)}>
+                    移除
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="setting-card">
@@ -285,6 +427,20 @@ export const Setting = () => {
               value={String(launchAtLogin)}
               readOnly
             />
+          </div>
+
+          <div className="setting-row">
+            <div className="row-label">
+              <span className="label-main">隐藏程序坞图标</span>
+              <span className="label-sub">开启后只在菜单栏驻留，程序坞不再显示</span>
+            </div>
+            <Switch
+              checked={hideDockIcon}
+              onChange={handleDockChange}
+              size="small"
+              disabled={!dockSupported}
+            />
+            <input type="hidden" name="hideDockIcon" value={String(hideDockIcon)} readOnly />
           </div>
 
           <div className="setting-row">

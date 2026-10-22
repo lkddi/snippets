@@ -68,6 +68,8 @@ const loadTitleIndex = async (): Promise<PinyinIndex[]> => {
 export default () => {
   const setData = useStore((s) => s.setData)
   const setApps = useStore((s) => s.setApps)
+  const setFiles = useStore((s) => s.setFiles)
+  const setWeb = useStore((s) => s.setWeb)
   const search = useStore((s) => s.search)
   const setSearch = useStore((s) => s.setSearch)
   const timer = useRef<ReturnType<typeof setTimeout>>()
@@ -78,22 +80,25 @@ export default () => {
 
   const query = async (keyword: string): Promise<void> => {
     if (!keyword.trim()) {
-      // 清空搜索时把应用结果一并清掉
+      // 清空搜索时把应用 / 文件 / 网页兜底结果一并清掉
       setData([])
       setApps([])
+      setFiles([])
+      setWeb(null)
       return
     }
     const lowerKeyword = keyword.trim().toLowerCase()
 
-    // 应用搜索（主进程扫盘 + 拼音）与片段搜索（SQLite + 拼音）并行执行，互不阻塞
-    const [contents, likeMatched, pinyinEntries] = await Promise.all([
+    // 应用 / 文件 / 片段三路搜索并行执行，互不阻塞
+    const [contents, likeMatched, pinyinEntries, matchedFiles] = await Promise.all([
       window.api.searchApps(lowerKeyword),
       window.api.sql<ContentType[]>(
         `select * from contents where title like @keyword or content like @keyword order by id desc limit 6`,
         'findAll',
         { keyword: `%${keyword}%` }
       ),
-      loadTitleIndex()
+      loadTitleIndex(),
+      window.api.searchFiles(lowerKeyword)
     ])
 
     // 拼音命中但 LIKE 没命中的标题（如输入 wx 找「微信使用技巧」），补进结果
@@ -126,6 +131,19 @@ export default () => {
 
     setData(merged.slice(0, 6))
     setApps(contents)
+    setFiles(matchedFiles)
+
+    // 网页搜索兜底：只要有关键词就提供入口，搜索引擎读自配置
+    const row = (await window.api.sql(`select content from config where id=1`, 'findOne')) as
+      | { content: string }
+      | undefined
+    let engine = 'baidu'
+    try {
+      engine = (JSON.parse(row?.content ?? '{}') as Partial<ConfigDataType>).webSearchEngine || 'baidu'
+    } catch {
+      // 解析失败用默认百度
+    }
+    setWeb({ engine, query: keyword.trim() })
   }
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>): void => {
