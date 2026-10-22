@@ -478,7 +478,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
         <input type="hidden" name="webEngines" value={JSON.stringify(engines)} readOnly />
         <input type="hidden" name="searchDirectories" value={JSON.stringify(dirs)} readOnly />
 
-        <footer className="page-footer">Snippets · 配置保存在本机数据库</footer>
+        <footer className="page-footer">灵犀 · 配置保存在本机数据库</footer>
       </main>
     </Form>
   )

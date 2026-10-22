@@ -230,7 +230,7 @@ export const AppShortcuts = () => {
       )}
 
       <p className="app-cut-hint">
-        隐藏已在最前的应用需要系统「自动化」授权：首次使用按系统提示允许 Snippets 控制 System Events。
+        隐藏已在最前的应用需要系统「自动化」授权：首次使用按系统提示允许灵犀控制 System Events。
       </p>
 
       <Modal

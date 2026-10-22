@@ -161,4 +161,21 @@
     height: 100%;
     overflow: hidden;
   }
+
+  /* 片段页嵌入：原布局网格行高是 auto，内容列会把整页撑高后被外层裁掉；
+     锁定行高并打通 .content > form > .content-page 的高度链，编辑区才能占满剩余空间 */
+  .contentList-page {
+    grid-template: 'list content' minmax(0, 1fr) / 250px minmax(0, 1fr);
+
+    > .content {
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+
+      > form {
+        height: 100%;
+        min-height: 0;
+      }
+    }
+  }
 }

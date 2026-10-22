@@ -37,15 +37,17 @@ const buildTrayMenu = (): MenuItemConstructorOptions[] => [
     click: (item) => setLaunchAtLogin(item.checked)
   },
   { type: 'separator' },
-  { label: '退出 Snippets', click: () => app.quit() }
+  { label: '退出灵犀', click: () => app.quit() }
 ]
 
 export const initTray = (): void => {
   if (tray) return
-  // 菜单栏图标按 18pt 高度缩放（Retina 下自动 2x）
+  // 菜单栏图标按 18pt 高度缩放（Retina 下自动 2x）；
+  // 纯黑闪电 + 模板图：菜单栏明暗模式自动反色
   const image = nativeImage.createFromPath(icon).resize({ height: 18 })
+  image.setTemplateImage(true)
   tray = new Tray(image)
-  tray.setToolTip('Snippets · 快捷键唤起搜索')
+  tray.setToolTip('灵犀 · 快捷键唤起搜索')
   // macOS 上设置 contextMenu 会让左键单击也弹菜单，
   // 这里手动区分：左键唤起搜索窗，右键弹设置菜单
   tray.on('click', toggleSearch)

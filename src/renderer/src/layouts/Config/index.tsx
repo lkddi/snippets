@@ -51,10 +51,10 @@ export default function Config() {
         <div className="settings-shell">
           <aside className="settings-nav">
             <div className="nav-brand">
-              <span className="brand-mark">S</span>
+              <span className="brand-mark">灵</span>
               <span className="brand-text">
-                <b>Snippets</b>
-                <i>快捷启动 · 片段库</i>
+                <b>灵犀</b>
+                <i>快捷启动 · 效率工具箱</i>
               </span>
             </div>
 
