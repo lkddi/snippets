@@ -45,7 +45,7 @@
 
 ### macOS
 
-从 [Releases](https://github.com/lkddi/snippets/releases) 下载 `snippets-<版本>-arm64.dmg`，拖入「应用程序」即可。
+从 [Releases](https://github.com/lkddi/snippets/releases) 下载 `Snippets-<版本>-arm64.dmg`，拖入「应用程序」即可。
 
 首次打开若提示「无法验证开发者」，到「系统设置 → 隐私与安全性」点击「仍要打开」；
 或执行：
