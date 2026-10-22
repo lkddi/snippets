@@ -4,6 +4,24 @@
   "description": "Alfred 风格的 macOS 桌面启动器：聚合搜索应用/文件/网页、剪贴板历史与代码片段管理",
   "main": "./out/main/index.js",
   "author": "lkddi",
+  "license": "MIT",
+  "homepage": "https://github.com/lkddi/snippets#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lkddi/snippets.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lkddi/snippets/issues"
+  },
+  "keywords": [
+    "electron",
+    "launcher",
+    "alfred",
+    "spotlight",
+    "snippets",
+    "clipboard",
+    "macos"
+  ],
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
