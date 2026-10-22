@@ -17,6 +17,7 @@ import { initAppMenu } from './menu'
 import { initTray } from './tray'
 import './loginItem'
 import { applyDockIconFromConfig } from './dockIcon'
+import { captureFrontmostApp } from './pasteBack'
 
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
@@ -91,6 +92,7 @@ app.whenReady().then(() => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
+      captureFrontmostApp()
       getByNameWindow('search').show()
     }
   })

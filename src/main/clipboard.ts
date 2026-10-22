@@ -1,7 +1,7 @@
 import { clipboard, dialog, globalShortcut, ipcMain, IpcMainInvokeEvent } from 'electron'
-import { exec } from 'node:child_process'
 import { config, del, findAll, findOne, insert as insertRow } from './db/query'
 import { findWindow, getByNameWindow } from './windows'
+import { captureFrontmostApp, pasteBackToFrontApp } from './pasteBack'
 
 /** 剪贴板轮询间隔（毫秒） */
 const POLL_INTERVAL = 1000
@@ -23,23 +23,6 @@ let hookInstance: { stop: () => void } | null = null
 
 /** 轮询用内存缓存：与"库里的最新一条"等价，用于去重 */
 let lastContent = ''
-
-/**
- * 唤起面板前记录的最前台应用名：粘贴时要把它调回前台再 Cmd+V，
- * 否则面板隐藏后焦点未就绪，内容会粘到错误目标或直接丢失
- */
-let frontmostAppBeforeShow = ''
-
-const captureFrontmostApp = (): void => {
-  if (process.platform !== 'darwin') return
-  exec(
-    `osascript -e 'tell application "System Events" to name of first application process whose frontmost is true'`,
-    (error, stdout) => {
-      if (error) return
-      frontmostAppBeforeShow = stdout.trim()
-    }
-  )
-}
 
 const toggleClipboardWindow = (): void => {
   const win = getByNameWindow('clipboard')
@@ -239,30 +222,9 @@ ipcMain.handle('clipboard:paste', (_event: IpcMainInvokeEvent, id: number) => {
   const win = findWindow('clipboard')
   if (win && !win.isDestroyed()) win.hide()
 
-  // 用 osascript 模拟 Cmd+V 实现自动粘贴（需要辅助功能权限）；
-  // 失败时静默降级为仅写回剪贴板，用户手动 Cmd+V 即可
-  if (process.platform === 'darwin') {
-    // 隐藏面板后焦点不会立刻回到原应用：先等一小会儿，再把唤起面板前
-    // 记录的应用显式调回前台，最后才发 Cmd+V，保证内容粘回原来的光标处
-    const appName = frontmostAppBeforeShow.replace(/["\\]/g, '')
-    const script = [
-      'delay 0.15',
-      'tell application "System Events"',
-      appName
-        ? `set frontmost of (first application process whose name is "${appName}") to true`
-        : null,
-      'delay 0.1',
-      'keystroke "v" using command down',
-      'end tell'
-    ]
-      .filter(Boolean)
-      .join('\n')
-    exec(`osascript <<'AS'
-${script}
-AS`, (error) => {
-      if (error) console.error('自动粘贴失败，内容已写回剪贴板', error)
-    })
-  }
+  // 隐藏面板后焦点不会立刻回到原应用：等片刻后把唤起面板前记录的应用
+  // 显式调回前台，最后才发 Cmd+V，保证内容粘回原来的光标处
+  pasteBackToFrontApp()
   return true
 })
 

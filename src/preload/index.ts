@@ -102,6 +102,10 @@ const api = {
   clipboardShortCut: (shortCut: string) => {
     return ipcRenderer.invoke('clipboardShortCut', shortCut)
   },
+  /** 搜索窗选中片段：写回剪贴板并自动粘贴到唤起前的光标处（同剪贴板面板） */
+  pasteSnippet: (content: string) => {
+    return ipcRenderer.invoke('snippet:paste', content) as Promise<boolean>
+  },
   // 开机启动设置（读取 / 切换系统登录项）
   getLoginItemSettings: () => {
     return ipcRenderer.invoke('loginItem:get') as Promise<boolean>

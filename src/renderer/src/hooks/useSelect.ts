@@ -35,11 +35,12 @@ export default () => {
     window.api.closeWindow('search')
   }, [setData, setApps, setFiles, setWeb, setSearch])
 
-  // 片段：复制内容后收起（保持原有行为）
+  // 片段：内容写回剪贴板并自动粘回唤起前的光标处（与剪贴板面板同一链路），
+  // 失败（无辅助功能权限等）时降级为仅复制，用户手动 Cmd+V
   const selectItem = useCallback(
     async (targetId: number): Promise<void> => {
       const content = data.find((item) => item.id === targetId)?.content
-      if (content) await navigator.clipboard.writeText(content)
+      if (content) await window.api.pasteSnippet(content)
       clearAndHide()
     },
     [data, clearAndHide]

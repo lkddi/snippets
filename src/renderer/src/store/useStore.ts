@@ -21,6 +21,9 @@ interface StateProps {
   setId: (id: number) => void
   editCategoryId: number
   setEditCategoryId: (id: number) => void
+  /** 正在内联重命名的片段 id（0 表示无，瞬态） */
+  editContentId: number
+  setEditContentId: (id: number) => void
   /** 分类批量管理模式与选中集合（瞬态，不持久化） */
   categoryBatchMode: boolean
   setCategoryBatchMode: (mode: boolean) => void
@@ -59,6 +62,8 @@ export const useStore = create(
       setId: (id) => set({ id }),
       editCategoryId: 0,
       setEditCategoryId: (editCategoryId) => set({ editCategoryId }),
+      editContentId: 0,
+      setEditContentId: (editContentId) => set({ editContentId }),
       categoryBatchMode: false,
       setCategoryBatchMode: (categoryBatchMode) =>
         set({ categoryBatchMode, selectedCategoryIds: [] }),

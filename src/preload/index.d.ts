@@ -56,6 +56,8 @@ declare global {
       clipboardPaste: (id: number) => Promise<boolean>
       /** 保存剪贴板快捷键（'doubleOption' 表示双击 Option 模式，直接视为成功） */
       clipboardShortCut: (shortCut: string) => Promise<boolean>
+      /** 搜索窗选中片段回车：写回剪贴板并模拟 Cmd+V 粘回唤起前的光标处，然后收起搜索窗 */
+      pasteSnippet: (content: string) => Promise<boolean>
       /** 读取系统登录项：当前是否开机启动 */
       getLoginItemSettings: () => Promise<boolean>
       /** 切换开机启动，返回是否设置成功 */

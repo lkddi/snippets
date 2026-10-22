@@ -2,6 +2,7 @@ import { app, dialog, globalShortcut, ipcMain, IpcMainInvokeEvent } from 'electr
 import { stopClipboardHook } from './clipboard'
 import { config } from './db/query'
 import { getByNameWindow } from './windows'
+import { captureFrontmostApp } from './pasteBack'
 
 /** 当前应用已注册的快捷键，用于切换时先注销旧键，而不是 unregisterAll 误杀其它快捷键 */
 let registeredShortCut = ''
@@ -33,6 +34,8 @@ const toggleSearchWindow = (): void => {
     return
   }
   // macOS 隐藏程序坞图标后应用是 accessory 模式，必须显式激活才能让窗口真正浮到最前
+  // 唤起前先记录最前台应用，选中片段回车时才能把内容粘回原来的光标处
+  captureFrontmostApp()
   if (process.platform === 'darwin') app.focus({ steal: true })
   win.show()
   win.focus()

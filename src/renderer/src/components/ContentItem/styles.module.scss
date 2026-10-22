@@ -5,3 +5,10 @@
 .active {
   @apply bg-[#0a84ff] text-white rounded-md border-none hover:bg-[#0a84ff];
 }
+
+.input {
+  @apply h-[30px] mx-2 my-1 px-0.5 flex items-center;
+  input {
+    @apply h-full w-full rounded-md px-2 text-[12px] border border-[#0a84ff] outline-none;
+  }
+}

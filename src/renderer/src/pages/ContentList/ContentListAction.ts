@@ -21,6 +21,18 @@ export default async ({ request, params }) => {
       // 会拼出 /contentList/content/5，匹配不到 content/:id 路由直接白屏
       return redirect(`/config/category/contentList/${cid}/content/${id}`)
     }
+    case 'PUT': {
+      // 列表内联重命名（右键菜单/后续扩展），只改标题；详情页的标题+内容保存走 content/:id 的 action
+      const id = Number(data.id)
+      const title = (data.title ?? '').trim()
+      if (!Number.isFinite(id) || id <= 0 || !title) return { ok: false }
+      await window.api.sql(`update contents set title = @title where id = @id`, 'update', {
+        id,
+        title
+      })
+      // 不 redirect，保持当前列表与选中状态不动
+      return { ok: true }
+    }
     case 'DELETE': {
       // 兼容单个删除（id）与批量管理（ids，逗号分隔）
       const ids = (data.ids ?? data.id ?? '')

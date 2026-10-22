@@ -2,6 +2,7 @@ import { app, Menu, MenuItemConstructorOptions, nativeImage, Tray } from 'electr
 import icon from '../../resources/icon.png?asset'
 import { getByNameWindow, showAndFocus } from './windows'
 import { isLaunchAtLogin, setLaunchAtLogin } from './loginItem'
+import { captureFrontmostApp } from './pasteBack'
 
 let tray: Tray | null = null
 
@@ -11,6 +12,8 @@ const toggleSearch = (): void => {
   if (win.isVisible()) {
     win.hide()
   } else {
+    // 唤起前记录最前台应用，片段粘贴时才能回到原光标处
+    captureFrontmostApp()
     showAndFocus('search')
   }
 }
@@ -52,6 +55,8 @@ export const initTray = (): void => {
   // 这里手动区分：左键唤起搜索窗，右键弹设置菜单
   tray.on('click', toggleSearch)
   tray.on('right-click', () => {
+    // 右键菜单里的「打开搜索窗」也会走唤起，弹出前先记录前台应用
+    captureFrontmostApp()
     tray?.popUpContextMenu(Menu.buildFromTemplate(buildTrayMenu()))
   })
 }
