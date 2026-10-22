@@ -2,6 +2,7 @@ import { FolderClose } from '@icon-park/react'
 import useCategory from '@renderer/hooks/useCategory'
 import { useStore } from '@renderer/store/useStore'
 import { NavLink, useFetcher } from 'react-router-dom'
+import { Checkbox } from '../Checkbox'
 import styles from './styles.module.scss'
 
 interface Props {
@@ -11,6 +12,9 @@ interface Props {
 export const CategoryItem = ({ category }: Props) => {
   const editCategoryId = useStore((state) => state.editCategoryId)
   const setEditCategoryId = useStore((state) => state.setEditCategoryId)
+  const categoryBatchMode = useStore((state) => state.categoryBatchMode)
+  const toggleCategorySelected = useStore((state) => state.toggleCategorySelected)
+  const selectedCategoryIds = useStore((state) => state.selectedCategoryIds)
   const fetcher = useFetcher()
   const { contextMenu, dragHandle } = useCategory(category)
 
@@ -24,6 +28,21 @@ export const CategoryItem = ({ category }: Props) => {
       fetcher.submit({ id: category.id, name: value }, { method: 'PUT' })
     }
     closeEdit()
+  }
+
+  const selected = selectedCategoryIds.includes(category.id)
+
+  // 批量模式下禁用跳转/右键/拖拽/重命名，点击条目即切换选中
+  if (categoryBatchMode && editCategoryId !== category.id) {
+    return (
+      <div
+        className={[selected ? styles.active : styles.link, 'flex items-center gap-1'].join(' ')}
+        onClick={() => toggleCategorySelected(category.id)}
+      >
+        <Checkbox checked={selected} onChange={() => toggleCategorySelected(category.id)} />
+        <div className="truncate">{category.name}</div>
+      </div>
+    )
   }
 
   return (

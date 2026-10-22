@@ -1,9 +1,10 @@
 .category-page {
   @apply w-screen h-screen;
   display: grid;
+  // 列宽由 Resizer 组件写入的 --category-width 控制（localStorage 持久化）
   grid-template:
-    'categories content' auto
-    'nav content' 30px/150px auto;
+    'categories resizer content' auto
+    'nav resizer content' 30px / var(--category-width, 160px) 5px auto;
 
   .categories {
     @apply border-r bg-slate-100 text-xs text-slate-700 overflow-y-auto;
@@ -12,6 +13,9 @@
   .nav {
     @apply border-t border-r bg-slate-100 flex justify-center items-center gap-2;
     grid-area: nav;
+  }
+  .resizer {
+    grid-area: resizer;
   }
   .content {
     grid-area: content;

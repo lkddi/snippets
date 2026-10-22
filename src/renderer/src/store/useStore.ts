@@ -21,6 +21,18 @@ interface StateProps {
   setId: (id: number) => void
   editCategoryId: number
   setEditCategoryId: (id: number) => void
+  /** 分类批量管理模式与选中集合（瞬态，不持久化） */
+  categoryBatchMode: boolean
+  setCategoryBatchMode: (mode: boolean) => void
+  selectedCategoryIds: number[]
+  toggleCategorySelected: (id: number) => void
+  setSelectedCategoryIds: (ids: number[]) => void
+  /** 片段批量管理模式与选中集合 */
+  contentBatchMode: boolean
+  setContentBatchMode: (mode: boolean) => void
+  selectedContentIds: number[]
+  toggleContentSelected: (id: number) => void
+  setSelectedContentIds: (ids: number[]) => void
 }
 
 /**
@@ -46,7 +58,28 @@ export const useStore = create(
       id: 0,
       setId: (id) => set({ id }),
       editCategoryId: 0,
-      setEditCategoryId: (editCategoryId) => set({ editCategoryId })
+      setEditCategoryId: (editCategoryId) => set({ editCategoryId }),
+      categoryBatchMode: false,
+      setCategoryBatchMode: (categoryBatchMode) =>
+        set({ categoryBatchMode, selectedCategoryIds: [] }),
+      selectedCategoryIds: [],
+      toggleCategorySelected: (id) =>
+        set((state) => ({
+          selectedCategoryIds: state.selectedCategoryIds.includes(id)
+            ? state.selectedCategoryIds.filter((item) => item !== id)
+            : [...state.selectedCategoryIds, id]
+        })),
+      setSelectedCategoryIds: (selectedCategoryIds) => set({ selectedCategoryIds }),
+      contentBatchMode: false,
+      setContentBatchMode: (contentBatchMode) => set({ contentBatchMode, selectedContentIds: [] }),
+      selectedContentIds: [],
+      toggleContentSelected: (id) =>
+        set((state) => ({
+          selectedContentIds: state.selectedContentIds.includes(id)
+            ? state.selectedContentIds.filter((item) => item !== id)
+            : [...state.selectedContentIds, id]
+        })),
+      setSelectedContentIds: (selectedContentIds) => set({ selectedContentIds })
     }),
     {
       name: 'houdunren-storage',

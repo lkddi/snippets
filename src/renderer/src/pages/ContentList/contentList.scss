@@ -1,13 +1,19 @@
 .contentList-page {
   @apply h-screen text-xs text-slate-700;
   display: grid;
-  grid-template: 'list content' auto / 250px auto;
+  // 列宽由 Resizer 组件写入的 --content-width 控制（localStorage 持久化）
+  grid-template: 'list resizer content' auto / var(--content-width, 250px) 5px auto;
+
   .list {
     @apply border-r overflow-y-auto;
     grid-area: list;
   }
 
-  .conetnt {
+  .resizer {
+    grid-area: resizer;
+  }
+
+  .content {
     grid-area: content;
   }
 }

@@ -25,3 +25,9 @@ option {
     }
   }
 }
+
+// 拖拽调列宽期间：禁止文本选中、全局统一 col-resize 光标
+body.column-resizing {
+  cursor: col-resize;
+  user-select: none;
+}

@@ -163,9 +163,10 @@
   }
 
   /* 片段页嵌入：原布局网格行高是 auto，内容列会把整页撑高后被外层裁掉；
-     锁定行高并打通 .content > form > .content-page 的高度链，编辑区才能占满剩余空间 */
+     锁定行高并打通 .content > form > .content-page 的高度链，编辑区才能占满剩余空间。
+     列宽沿用页面自身的 --content-width（支持 Resizer 拖拽调整），这里只修正行高 */
   .contentList-page {
-    grid-template: 'list content' minmax(0, 1fr) / 250px minmax(0, 1fr);
+    grid-template: 'list resizer content' minmax(0, 1fr) / var(--content-width, 250px) 5px auto;
 
     > .content {
       height: 100%;

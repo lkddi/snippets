@@ -1,0 +1,23 @@
+.resizer {
+  position: relative;
+  cursor: col-resize;
+  z-index: 10;
+
+  // 视觉上是一条 1px 的细线（贴在分隔条内侧），热区有 5px 宽方便点击
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background-color: theme('borderColor.DEFAULT');
+    transition: background-color 150ms ease;
+  }
+
+  &:hover::after,
+  &:active::after {
+    width: 2px;
+    background-color: theme('colors.blue.500');
+  }
+}

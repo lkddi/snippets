@@ -22,9 +22,17 @@ export default async ({ request, params }) => {
       return redirect(`/config/category/contentList/${cid}/content/${id}`)
     }
     case 'DELETE': {
-      await window.api.sql(`delete from contents where id = @id`, 'del', {
-        id: Number(data.id)
-      })
+      // 兼容单个删除（id）与批量管理（ids，逗号分隔）
+      const ids = (data.ids ?? data.id ?? '')
+        .toString()
+        .split(',')
+        .map(Number)
+        .filter((id) => Number.isFinite(id) && id > 0)
+      if (!ids.length) return { ok: false }
+
+      const placeholders = ids.map((_, index) => `@id${index}`).join(',')
+      const params = Object.fromEntries(ids.map((id, index) => [`id${index}`, id]))
+      await window.api.sql(`delete from contents where id in (${placeholders})`, 'del', params)
       // 删除后回到列表：如果继续停留在已删除片段的详情路由，loader 会拿到 undefined
       return redirect(
         params.cid === undefined ? '/config/category/contentList' : `/config/category/contentList/${cid}`

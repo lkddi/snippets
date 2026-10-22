@@ -9,12 +9,18 @@ export default async ({ request }) => {
       return window.api.sql(`insert into categories (name, created_at) values ('未命名', datetime())`, 'insert')
     }
     case 'DELETE': {
-      const id = Number(data.id)
-      if (!Number.isFinite(id)) return { ok: false }
+      // 兼容单个删除（id）与批量管理（ids，逗号分隔）
+      const ids = (data.ids ?? data.id ?? '')
+        .toString()
+        .split(',')
+        .map(Number)
+        .filter((id) => Number.isFinite(id) && id > 0)
+      if (!ids.length) return { ok: false }
 
-      // 删分类 + 把片段移到"未分类"必须在同一事务里，
-      // 否则中途失败会留下 category_id 指向已删分类的孤儿片段（列表里永远查不到）
-      await window.api.sql('', 'deleteCategory', { id })
+      // deleteCategory 自带事务（删分类 + 片段移入未分类），逐个执行即可
+      for (const id of ids) {
+        await window.api.sql('', 'deleteCategory', { id })
+      }
       return redirect('/config/category/contentList')
     }
     case 'PUT': {
