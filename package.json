@@ -1,6 +1,6 @@
 {
   "name": "snippets",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Alfred 风格的 macOS 桌面启动器：聚合搜索应用/文件/网页、多搜索引擎关键字直达、应用快捷键、剪贴板历史与代码片段管理",
   "main": "./out/main/index.js",
   "author": "lkddi",
