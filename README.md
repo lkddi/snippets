@@ -1,4 +1,4 @@
-# Snippets
+# 灵犀
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Release](https://img.shields.io/github/v/release/lkddi/snippets)](https://github.com/lkddi/snippets/releases/latest)
@@ -54,13 +54,13 @@
 
 ### macOS
 
-从 [Releases](https://github.com/lkddi/snippets/releases) 下载 `Snippets-<版本>-arm64.dmg`，拖入「应用程序」即可。
+从 [Releases](https://github.com/lkddi/snippets/releases) 下载 `灵犀-<版本>-arm64.dmg`，拖入「应用程序」即可。
 
 首次打开若提示「无法验证开发者」，到「系统设置 → 隐私与安全性」点击「仍要打开」；
 或执行：
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Snippets.app
+xattr -dr com.apple.quarantine /Applications/灵犀.app
 ```
 
 启动后应用**只驻留菜单栏，不显示主窗口**，这是设计行为。按下默认快捷键 `Option + Space` 即可呼出搜索窗。
@@ -83,7 +83,7 @@ pnpm build:linux   # AppImage / snap / deb
 - **托盘右键**：打开菜单（搜索窗、剪贴板、代码片段、设置、开机启动、退出）
 - **`⌘,`**：直接打开设置窗（也可从搜索窗右侧齿轮进入）
 
-关闭窗口不会退出应用；彻底退出请用托盘菜单的「退出 Snippets」。
+关闭窗口不会退出应用；彻底退出请用托盘菜单的「退出 灵犀」。
 
 修改快捷键：设置页 → 快捷键 → 直接用键盘按下想要的组合（必须包含 `Command` / `Control` / `Option` 之一）。
 保存后如果显示红色提示，说明该组合被系统或其他应用占用，需要先在「系统设置 → 键盘 → 键盘快捷键」里释放。
@@ -141,7 +141,7 @@ pnpm build:linux   # AppImage / snap / deb
 - **生效状态**：列表里直接显示「已生效 · Option+Space」；失败会在该行标红，下次启动自动重放注册
 - **数据位置**：绑定关系存在配置表 `appShortCuts` 字段，随 `hd.db` 一起走
 
-> **首次使用隐藏功能时**，系统会弹一次「Snippets 想要控制 System Events」的授权。
+> **首次使用隐藏功能时**，系统会弹一次「灵犀 想要控制 System Events」的授权。
 > 这是 macOS 的「自动化」权限，只用于把前台应用收起；拒绝授权也不影响启动，
 > 只是再按一次会退化成「重新激活该应用」。可在「系统设置 → 隐私与安全性 → 自动化」里补授权。
 
@@ -215,7 +215,7 @@ pnpm build:linux   # AppImage / snap / deb
 ─────────
 开机启动  [勾选状态]
 ─────────
-退出 Snippets
+退出 灵犀
 ```
 
 「代码片段」与「设置…」都会打开同一个设置窗，只是直接落到对应分区。
@@ -238,7 +238,7 @@ pnpm build:linux   # AppImage / snap / deb
 
 **应用快捷键只能启动、再按一次收不起来？**
 隐藏前台应用要走 macOS「自动化」权限。首次触发时系统会询问是否允许控制 System Events，选「允许」；
-若当时点了拒绝，到「系统设置 → 隐私与安全性 → 自动化」里勾选 Snippets 对应的 System Events 即可。
+若当时点了拒绝，到「系统设置 → 隐私与安全性 → 自动化」里勾选 灵犀 对应的 System Events 即可。
 
 **输入 `github 关键词` 没切到 GitHub？**
 检查三点：该引擎是否处于启用状态、关键字后是否真的有空格、关键字是否被别的引擎占用（设置页会提示重复）。
@@ -253,7 +253,7 @@ pnpm build:linux   # AppImage / snap / deb
 文件搜索只覆盖设置里的「搜索目录」，请先把目标文件夹加进去；深层嵌套目录受 4 层深度限制。
 
 **隐藏了程序坞图标，怎么退出应用？**
-点菜单栏图标 → 「退出 Snippets」。
+点菜单栏图标 → 「退出 灵犀」。
 
 **中文输入法下打不出拼音首字母？**
 请切到英文输入状态再输入，拼音匹配基于输入的字母串。

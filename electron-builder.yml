@@ -1,5 +1,5 @@
 appId: com.pllx.snippets
-productName: Snippets
+productName: 灵犀
 directories:
   buildResources: build
 files:
@@ -36,7 +36,7 @@ mac:
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Documents folder.
   notarize: false
 dmg:
-  artifactName: ${name}-${version}-arm64.${ext}
+  artifactName: 灵犀-${version}-arm64.${ext}
   contents:
     - x: 130
       y: 220
