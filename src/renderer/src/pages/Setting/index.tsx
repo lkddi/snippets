@@ -315,6 +315,13 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                 </button>
                 <button
                   type="button"
+                  className={classNames('seg-btn', { active: language === 'zh-TW' })}
+                  onClick={() => changeLanguage('zh-TW')}
+                >
+                  {t('language.zhTW')}
+                </button>
+                <button
+                  type="button"
                   className={classNames('seg-btn', { active: language === 'en' })}
                   onClick={() => changeLanguage('en')}
                 >

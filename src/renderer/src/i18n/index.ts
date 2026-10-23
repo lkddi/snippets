@@ -1,4 +1,5 @@
 import zhCN from './locales/zh-CN'
+import zhTW from './locales/zh-TW'
 import en from './locales/en'
 import { useI18nStore } from './useI18nStore'
 import type { ResolvedLocale } from './types'
@@ -10,6 +11,7 @@ export { useI18nStore } from './useI18nStore'
 /** 全部语言资源；新增语言在此加一项 + 新增 locales/xx.ts */
 export const resources = {
   'zh-CN': zhCN,
+  'zh-TW': zhTW,
   en
 } as const
 

@@ -44,8 +44,8 @@ type ConfigDataType = {
   searchDirectories: string[]
   /** 按应用绑定的全局快捷键（启动 / 隐藏切换） */
   appShortCuts: AppShortcutType[]
-  /** 界面语言：'system' 跟随系统（解析为系统语言，未支持回落英文），或显式指定中文 / 英文 */
-  language?: 'system' | 'zh-CN' | 'en'
+  /** 界面语言：'system' 跟随系统（解析为系统语言，未支持回落英文），或显式指定简体 / 繁体 / 英文 */
+  language?: 'system' | 'zh-CN' | 'zh-TW' | 'en'
 }
 
 /** 单个应用的全局快捷键绑定 */

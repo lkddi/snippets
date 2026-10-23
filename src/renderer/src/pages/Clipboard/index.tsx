@@ -4,6 +4,7 @@ import classNames from 'classnames'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
+import 'dayjs/locale/zh-tw'
 import { ChangeEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT, useI18nStore } from '@renderer/i18n'
 import './clipboard.scss'
@@ -70,12 +71,12 @@ export const Clipboard = (): JSX.Element => {
   const [keyword, setKeyword] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
 
-  // 相对时间随语言切换：中文用 zh-cn，其余用内置 en
+  // 相对时间随语言切换：中文用 zh-cn / zh-tw，其余用内置 en
   const locale = useI18nStore((s) => s.locale)
   const systemLocale = useI18nStore((s) => s.systemLocale)
   useEffect(() => {
     const eff = locale === 'system' ? systemLocale : locale
-    dayjs.locale(eff === 'zh-CN' ? 'zh-cn' : 'en')
+    dayjs.locale(eff === 'zh-TW' ? 'zh-tw' : eff === 'zh-CN' ? 'zh-cn' : 'en')
   }, [locale, systemLocale])
 
   // keyword 用 ref 中转：load / 粘贴 / 删除等回调保持稳定引用，
