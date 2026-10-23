@@ -2,10 +2,12 @@ import { Add, Checklist, Search } from '@icon-park/react'
 import { useEffect, useRef } from 'react'
 import { Form, useSubmit } from 'react-router-dom'
 import { useStore } from '@renderer/store/useStore'
+import { useT } from '@renderer/i18n'
 
 const SEARCH_DELAY = 250
 
 export const ContentSearch = () => {
+  const t = useT()
   const submit = useSubmit()
   const formRef = useRef<HTMLFormElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>()
@@ -32,7 +34,7 @@ export const ContentSearch = () => {
           <input
             name="searchWord"
             type="text"
-            placeholder="搜索片段..."
+            placeholder={t('search.snippetPlaceholder')}
             className="outline-none text-xs w-full bg-transparent text-slate-700 placeholder:text-slate-400"
             onChange={handleChange}
           />
@@ -41,7 +43,7 @@ export const ContentSearch = () => {
         {/* 图标按钮：与设置页侧栏 hover 语言一致（浅灰圆角块） */}
         <button
           type="button"
-          title="新建片段"
+          title={t('content.newSnippet')}
           className="p-1 rounded-md text-slate-500 hover:bg-[#e6ebf4] hover:text-[#0a84ff] transition-colors"
           onClick={() => {
             submit(null, { method: 'POST' })
@@ -52,7 +54,7 @@ export const ContentSearch = () => {
         {/* 片段批量管理入口 */}
         <button
           type="button"
-          title="批量管理"
+          title={t('content.batchManage')}
           className={[
             'p-1 rounded-md transition-colors',
             contentBatchMode

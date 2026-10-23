@@ -17,7 +17,8 @@ export default async () => {
     webSearchEngine: 'baidu',
     webEngines: defaultEngines,
     searchDirectories: [],
-    appShortCuts: []
+    appShortCuts: [],
+    language: 'system'
   }
   if (!row?.content) return fallback
 

@@ -8,6 +8,8 @@ import './files'
 import './webSearch'
 // 说明页：版本 / 最新版检查 / 外链打开
 import './about'
+// 系统语言：app:locale（供设置页「跟随系统」解析）
+import './i18n'
 import { initClipboard, registerAppClipboardShortCut } from './clipboard'
 import './db'
 import { initTable } from './db/tables'

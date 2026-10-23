@@ -48,7 +48,8 @@ export const config = (): ConfigDataType => {
     webSearchEngine: 'baidu',
     webEngines: DEFAULT_WEB_ENGINES,
     searchDirectories: [],
-    appShortCuts: []
+    appShortCuts: [],
+    language: 'system'
   }
   const row = findOne('select * from config where id = 1') as { content: string } | undefined
   if (!row?.content) return fallback

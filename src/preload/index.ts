@@ -127,6 +127,10 @@ const api = {
   setDockIconHidden: (hidden: boolean) => {
     return ipcRenderer.invoke('dock:set', hidden) as Promise<boolean>
   },
+  // 系统语言：主进程 app.getLocale()，比 renderer 的 navigator.language 准确
+  getSystemLocale: () => {
+    return ipcRenderer.invoke('app:locale') as Promise<string>
+  },
   // 监听剪贴板更新，返回取消订阅函数供 React effect 清理
   onClipboardUpdated: (callback: () => void) => {
     const listener = (): void => callback()

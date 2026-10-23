@@ -129,7 +129,9 @@ export default async ({ request }) => {
     searchDirectories,
     // 应用快捷键由 appShortCut:* 这组 IPC 单独维护，这里必须原样带回，
     // 否则每次保存普通设置都会把绑定清空
-    appShortCuts: await readAppShortCuts()
+    appShortCuts: await readAppShortCuts(),
+    // 语言设置：默认 'system'（跟随系统），用户可在设置页显式选择
+    language: String(data.language ?? 'system')
   })
 
   const changes = await window.api.sql<number>(`update config set content=@content where id=1`, 'update', {

@@ -72,6 +72,8 @@ declare global {
       setDockIconHidden: (hidden: boolean) => Promise<boolean>
       /** 监听剪贴板更新事件，返回取消订阅函数 */
       onClipboardUpdated: (callback: () => void) => () => void
+      /** 系统语言（主进程 app.getLocale()，比 renderer 的 navigator.language 准确） */
+      getSystemLocale: () => Promise<string>
     }
   }
 }

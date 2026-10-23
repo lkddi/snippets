@@ -2,6 +2,7 @@ import { Close, Plus, SettingTwo } from '@icon-park/react'
 import { Input, Modal, Switch } from 'antd'
 import classNames from 'classnames'
 import { useMemo, useState } from 'react'
+import { useT } from '@renderer/i18n'
 import './WebEngines.scss'
 
 type Props = {
@@ -31,13 +32,14 @@ const hasPlaceholder = (url: string): boolean => /\{(query|q)\}/i.test(url)
  * 自定义引擎可增删改；每条都带触发关键字。
  */
 export const WebEngines = ({ engines, onChange }: Props) => {
+  const t = useT()
   const [editing, setEditing] = useState<Draft | null>(null)
   const [error, setError] = useState('')
 
   const defaultKeywordTip = useMemo(() => {
     const sample = engines.find((engine) => engine.enabled)
-    return sample ? `例如输入「${sample.keyword} 关键词」` : '给引擎设置关键字后即可定向搜索'
-  }, [engines])
+    return sample ? t('webEngines.tipExample', { kw: sample.keyword }) : t('webEngines.tipNone')
+  }, [engines, t])
 
   const update = (id: string, patch: Partial<WebEngineType>): void => {
     onChange(engines.map((engine) => (engine.id === id ? { ...engine, ...patch } : engine)))
@@ -63,15 +65,15 @@ export const WebEngines = ({ engines, onChange }: Props) => {
     const keyword = editing.keyword.trim().toLowerCase().replace(/\s+/g, '')
     const url = editing.url.trim()
 
-    if (!name) return setError('请填写引擎名称')
-    if (!KEYWORD_RE.test(keyword)) return setError('关键字只能是 1-16 位字母 / 数字 / 短横线')
-    if (!url) return setError('请填写搜索地址')
-    if (!hasPlaceholder(url)) return setError('搜索地址里要用 {query} 表示关键词位置')
+    if (!name) return setError(t('webEngines.errName'))
+    if (!KEYWORD_RE.test(keyword)) return setError(t('webEngines.errKeyword'))
+    if (!url) return setError(t('webEngines.errUrl'))
+    if (!hasPlaceholder(url)) return setError(t('webEngines.errPlaceholder'))
 
     const duplicated = engines.some(
       (engine) => engine.keyword === keyword && engine.id !== editing.id
     )
-    if (duplicated) return setError(`关键字「${keyword}」已被其它引擎使用`)
+    if (duplicated) return setError(t('webEngines.errDuplicate', { kw: keyword }))
 
     if (editing.id) {
       onChange(
@@ -95,15 +97,15 @@ export const WebEngines = ({ engines, onChange }: Props) => {
     <>
       <div className="setting-row">
         <div className="row-label">
-          <span className="label-main">搜索引擎</span>
+          <span className="label-main">{t('webEngines.title')}</span>
           <span className="label-sub">
-            关键字触发：{defaultKeywordTip}；不带关键字时用默认引擎
+            {t('webEngines.sub', { tip: defaultKeywordTip })}
           </span>
         </div>
         <div className="row-control">
           <button type="button" className="mini-btn accent" onClick={openAdd}>
             <Plus theme="outline" size={12} fill="#0a84ff" strokeWidth={4} />
-            添加引擎
+            {t('webEngines.addEngine')}
           </button>
         </div>
       </div>
@@ -118,7 +120,7 @@ export const WebEngines = ({ engines, onChange }: Props) => {
               <div className="engine-line">
                 <span className="engine-name">{engine.name}</span>
                 <code className="engine-key">{engine.keyword}</code>
-                {engine.builtin && <span className="engine-tag">内置</span>}
+                {engine.builtin && <span className="engine-tag">{t('webEngines.builtin')}</span>}
               </div>
               <span className="engine-url" title={engine.url}>
                 {engine.url}
@@ -133,7 +135,7 @@ export const WebEngines = ({ engines, onChange }: Props) => {
               <button
                 type="button"
                 className="icon-btn"
-                title="编辑"
+                title={t('common.edit')}
                 onClick={() => openEdit(engine)}
               >
                 <SettingTwo theme="outline" size={13} fill="#94a3b8" strokeWidth={4} />
@@ -142,7 +144,7 @@ export const WebEngines = ({ engines, onChange }: Props) => {
                 <button
                   type="button"
                   className="icon-btn"
-                  title="删除"
+                  title={t('common.remove')}
                   onClick={() => remove(engine.id)}
                 >
                   <Close theme="outline" size={13} fill="#94a3b8" strokeWidth={4} />
@@ -155,9 +157,9 @@ export const WebEngines = ({ engines, onChange }: Props) => {
 
       <Modal
         open={Boolean(editing)}
-        title={editing?.id ? '编辑搜索引擎' : '添加搜索引擎'}
-        okText="保存"
-        cancelText="取消"
+        title={editing?.id ? t('webEngines.editTitle') : t('webEngines.addTitle')}
+        okText={t('common.save')}
+        cancelText={t('common.cancel')}
         width={520}
         destroyOnClose
         onCancel={() => setEditing(null)}
@@ -167,33 +169,37 @@ export const WebEngines = ({ engines, onChange }: Props) => {
         {editing && (
           <div className="engine-form">
             <label className="engine-field">
-              <span>名称</span>
+              <span>{t('webEngines.fieldName')}</span>
               <Input
                 value={editing.name}
-                placeholder="例如 GitHub"
+                placeholder={t('webEngines.namePlaceholder')}
                 onChange={(e) => setEditing({ ...editing, name: e.target.value })}
               />
             </label>
             <label className="engine-field">
-              <span>触发关键字</span>
+              <span>{t('webEngines.fieldKeyword')}</span>
               <Input
                 value={editing.keyword}
-                placeholder="例如 github"
+                placeholder={t('webEngines.keywordPlaceholder')}
                 onChange={(e) => setEditing({ ...editing, keyword: e.target.value })}
               />
-              <i>在搜索框输入「{editing.keyword.trim() || '关键字'} 关键词」即用这个引擎</i>
+              <i>
+                {t('webEngines.keywordHint', {
+                  kw: editing.keyword.trim() || t('webEngines.keywordFallback')
+                })}
+              </i>
             </label>
             <label className="engine-field">
-              <span>搜索地址</span>
+              <span>{t('webEngines.fieldUrl')}</span>
               <Input
                 value={editing.url}
-                placeholder="https://github.com/search?q={query}"
+                placeholder={t('webEngines.urlPlaceholder')}
                 onChange={(e) => setEditing({ ...editing, url: e.target.value })}
               />
-              <i>用 {'{query}'} 表示关键词位置，搜索时自动替换并做 URL 编码</i>
+              <i>{t('webEngines.urlHint')}</i>
             </label>
             <label className="engine-field engine-field-inline">
-              <span>启用</span>
+              <span>{t('webEngines.fieldEnabled')}</span>
               <Switch
                 size="small"
                 checked={editing.enabled}

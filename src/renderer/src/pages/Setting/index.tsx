@@ -16,6 +16,7 @@ import { Alert, Switch } from 'antd'
 import classNames from 'classnames'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Form, useActionData, useLoaderData } from 'react-router-dom'
+import { useI18nStore, useT, type LanguageKey } from '@renderer/i18n'
 import AppShortcuts from './AppShortcuts'
 import WebEngines from './WebEngines'
 import './styles.scss'
@@ -24,16 +25,6 @@ type ActionData = { error?: string; ok?: boolean; warning?: string } | undefined
 
 /** 设置分区：与左侧导航一一对应（代码片段是独立路由，不在这里渲染） */
 export type SettingSection = 'general' | 'shortcuts' | 'apps' | 'search' | 'clipboard' | 'data' | 'about'
-
-const SECTION_META: Record<SettingSection, { title: string; desc: string }> = {
-  general: { title: '通用', desc: '启动方式、程序坞与菜单栏行为' },
-  shortcuts: { title: '快捷键', desc: '唤起搜索窗与剪贴板面板的全局快捷键' },
-  apps: { title: '应用快捷键', desc: '给单个应用绑定启动 / 隐藏热键，按一下启动，再按一下收起' },
-  search: { title: '搜索', desc: '网页兜底搜索与文件搜索目录' },
-  clipboard: { title: '剪贴板', desc: '历史记录的保存时长' },
-  data: { title: '数据', desc: '片段与剪贴板数据存放位置' },
-  about: { title: '说明', desc: '软件版本、更新与作者信息' }
-}
 
 const isMac = (): boolean => {
   const platform = window.electron?.process?.platform
@@ -44,6 +35,10 @@ const isMac = (): boolean => {
 export const Setting = ({ section }: { section: SettingSection }) => {
   const config = useLoaderData() as ConfigDataType
   const actionData = useActionData() as ActionData
+
+  const t = useT()
+  // 语言设置：本地选中态 + 同步进 i18n store（立即生效）+ 提交表单（持久化到 config 表）
+  const [language, setLanguage] = useState<LanguageKey>(config.language || 'system')
 
   const [shortCut, setShortCut] = useState(config.shortCut)
   // 主进程回报的真实注册状态：注册失败时红字提示，避免"看着设置好了其实没生效"
@@ -79,6 +74,11 @@ export const Setting = ({ section }: { section: SettingSection }) => {
   const [about, setAbout] = useState<AboutInfoType | null>(null)
   const [aboutLoading, setAboutLoading] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+
+  // 进入设置页时把 config 表里的语言设置同步进 i18n store（保证任意页面即时一致）
+  useEffect(() => {
+    useI18nStore.getState().setLocale((config.language as LanguageKey) || 'system')
+  }, [config.language])
 
   useEffect(() => {
     let cancelled = false
@@ -230,7 +230,17 @@ export const Setting = ({ section }: { section: SettingSection }) => {
     submitForm()
   }
 
-  const meta = SECTION_META[section]
+  // 切换语言：本地选中态 + 立即写 store 生效 + 提交表单持久化
+  const changeLanguage = (l: LanguageKey): void => {
+    setLanguage(l)
+    useI18nStore.getState().setLocale(l)
+    submitForm()
+  }
+
+  const meta = {
+    title: t(`setting.section.${section}.title`),
+    desc: t(`setting.section.${section}.desc`)
+  }
 
   return (
     <Form method="POST" ref={formRef}>
@@ -251,21 +261,21 @@ export const Setting = ({ section }: { section: SettingSection }) => {
           <section className="setting-card">
             <div className="card-head">
               <Power theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-              <span>启动与外观</span>
+              <span>{t('setting.general.title')}</span>
             </div>
 
             <div className="setting-row">
               <div className="row-label">
-                <span className="label-main">登录时启动</span>
-                <span className="label-sub">开机后自动驻留菜单栏，不弹窗口</span>
+                <span className="label-main">{t('setting.general.launchAtLogin.label')}</span>
+                <span className="label-sub">{t('setting.general.launchAtLogin.sub')}</span>
               </div>
               <Switch checked={launchAtLogin} onChange={handleLaunchChange} size="small" />
             </div>
 
             <div className="setting-row">
               <div className="row-label">
-                <span className="label-main">隐藏程序坞图标</span>
-                <span className="label-sub">开启后只在菜单栏驻留，程序坞不再显示</span>
+                <span className="label-main">{t('setting.general.hideDock.label')}</span>
+                <span className="label-sub">{t('setting.general.hideDock.sub')}</span>
               </div>
               <Switch
                 checked={hideDockIcon}
@@ -277,10 +287,40 @@ export const Setting = ({ section }: { section: SettingSection }) => {
 
             <div className="setting-row">
               <div className="row-label">
-                <span className="label-main">菜单栏图标</span>
-                <span className="label-sub">点按唤起搜索，右键打开菜单</span>
+                <span className="label-main">{t('setting.general.menuBarIcon.label')}</span>
+                <span className="label-sub">{t('setting.general.menuBarIcon.sub')}</span>
               </div>
-              <span className="row-static">常驻</span>
+              <span className="row-static">{t('setting.general.menuBarIcon.static')}</span>
+            </div>
+
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">{t('setting.general.language.label')}</span>
+                <span className="label-sub">{t('setting.general.language.sub')}</span>
+              </div>
+              <div className="seg-group">
+                <button
+                  type="button"
+                  className={classNames('seg-btn', { active: language === 'system' })}
+                  onClick={() => changeLanguage('system')}
+                >
+                  {t('language.system')}
+                </button>
+                <button
+                  type="button"
+                  className={classNames('seg-btn', { active: language === 'zh-CN' })}
+                  onClick={() => changeLanguage('zh-CN')}
+                >
+                  {t('language.zhCN')}
+                </button>
+                <button
+                  type="button"
+                  className={classNames('seg-btn', { active: language === 'en' })}
+                  onClick={() => changeLanguage('en')}
+                >
+                  {t('language.en')}
+                </button>
+              </div>
             </div>
           </section>
         )}
@@ -289,13 +329,13 @@ export const Setting = ({ section }: { section: SettingSection }) => {
           <section className="setting-card">
             <div className="card-head">
               <Keyboard theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-              <span>全局快捷键</span>
+              <span>{t('setting.shortcuts.title')}</span>
             </div>
 
             <div className="setting-row">
               <div className="row-label">
-                <span className="label-main">打开搜索</span>
-                <span className="label-sub">全局唤起搜索窗口</span>
+                <span className="label-main">{t('setting.shortcuts.openSearch.label')}</span>
+                <span className="label-sub">{t('setting.shortcuts.openSearch.sub')}</span>
                 <span
                   className={classNames('cut-status', {
                     'is-ok': cutStatus.registered,
@@ -303,8 +343,8 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                   })}
                 >
                   {cutStatus.registered
-                    ? `已生效：${cutStatus.accelerator}`
-                    : cutStatus.error || '未设置快捷键，点击右侧方框后按下组合键'}
+                    ? t('setting.shortcuts.openSearch.registered', { acc: cutStatus.accelerator })
+                    : cutStatus.error || t('setting.shortcuts.openSearch.hintDefault')}
                 </span>
               </div>
               <div className="row-control">
@@ -317,7 +357,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                 />
                 {shortCut && (
                   <button type="button" className="mini-btn" onClick={clearShortCut}>
-                    清除
+                    {t('common.clear')}
                   </button>
                 )}
               </div>
@@ -325,8 +365,8 @@ export const Setting = ({ section }: { section: SettingSection }) => {
 
             <div className="setting-row">
               <div className="row-label">
-                <span className="label-main">唤起剪贴板</span>
-                <span className="label-sub">全局唤起剪贴板历史</span>
+                <span className="label-main">{t('setting.shortcuts.openClipboard.label')}</span>
+                <span className="label-sub">{t('setting.shortcuts.openClipboard.sub')}</span>
               </div>
               <div className="row-control">
                 <ShortCutRecorder
@@ -338,7 +378,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                   }}
                 />
                 <button type="button" className="mini-btn" onClick={resetClipShortCut}>
-                  恢复默认
+                  {t('common.resetDefault')}
                 </button>
               </div>
             </div>
@@ -349,7 +389,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
           <section className="setting-card">
             <div className="card-head">
               <span className="card-head-dot" />
-              <span>按应用绑定</span>
+              <span>{t('setting.apps.cardHead')}</span>
             </div>
             <AppShortcuts />
           </section>
@@ -360,13 +400,13 @@ export const Setting = ({ section }: { section: SettingSection }) => {
             <section className="setting-card">
               <div className="card-head">
                 <WebPage theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-                <span>网页搜索</span>
+                <span>{t('setting.search.webSearch.title')}</span>
               </div>
 
               <div className="setting-row">
                 <div className="row-label">
-                  <span className="label-main">默认搜索引擎</span>
-                  <span className="label-sub">不带关键字时，用这个引擎搜索关键词</span>
+                  <span className="label-main">{t('setting.search.defaultEngine.label')}</span>
+                  <span className="label-sub">{t('setting.search.defaultEngine.sub')}</span>
                 </div>
                 <div className="seg-group">
                   {engines
@@ -388,7 +428,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
             <section className="setting-card">
               <div className="card-head">
                 <Earth theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-                <span>搜索引擎与关键字</span>
+                <span>{t('setting.search.engines.title')}</span>
               </div>
               <WebEngines engines={engines} onChange={handleEnginesChange} />
             </section>
@@ -396,19 +436,21 @@ export const Setting = ({ section }: { section: SettingSection }) => {
             <section className="setting-card">
               <div className="card-head">
                 <FolderSearch theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-                <span>文件搜索</span>
+                <span>{t('setting.search.fileSearch.title')}</span>
               </div>
 
               <div className="setting-row">
                 <div className="row-label">
-                  <span className="label-main">搜索目录</span>
+                  <span className="label-main">{t('setting.search.searchDirs.label')}</span>
                   <span className="label-sub">
-                    {dirs.length > 0 ? `已配置 ${dirs.length} 个目录` : '添加目录后即可搜索其中的文件'}
+                    {dirs.length > 0
+                      ? t('setting.search.searchDirs.subHas', { n: dirs.length })
+                      : t('setting.search.searchDirs.subNone')}
                   </span>
                 </div>
                 <div className="row-control">
                   <button type="button" className="mini-btn" onClick={() => void addSearchDir()}>
-                    添加目录
+                    {t('setting.search.addDir')}
                   </button>
                 </div>
               </div>
@@ -425,7 +467,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                         className="mini-btn danger"
                         onClick={() => removeSearchDir(path)}
                       >
-                        移除
+                        {t('common.remove')}
                       </button>
                     </div>
                   ))}
@@ -439,16 +481,16 @@ export const Setting = ({ section }: { section: SettingSection }) => {
           <section className="setting-card">
             <div className="card-head">
               <Clipboard theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-              <span>历史记录</span>
+              <span>{t('setting.clipboard.title')}</span>
             </div>
 
             <div className="setting-row">
               <div className="row-label">
-                <span className="label-main">保存时长</span>
+                <span className="label-main">{t('setting.clipboard.retention.label')}</span>
                 <span className="label-sub">
                   {Number(retentionDays) > 0
-                    ? `超过 ${retentionDays} 天自动清理`
-                    : '永久保留全部记录'}
+                    ? t('setting.clipboard.retention.subDays', { n: retentionDays })
+                    : t('setting.clipboard.retention.subForever')}
                 </span>
               </div>
               <div className="stepper">
@@ -466,7 +508,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                   onChange={handleRetentionChange}
                   onBlur={handleRetentionBlur}
                 />
-                <span className="step-unit">天</span>
+                <span className="step-unit">{t('setting.clipboard.daysUnit')}</span>
                 <button type="button" className="step-btn" onClick={stepRetention(7)}>
                   ＋
                 </button>
@@ -479,20 +521,20 @@ export const Setting = ({ section }: { section: SettingSection }) => {
           <section className="setting-card">
             <div className="card-head">
               <DatabaseConfig theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-              <span>存储</span>
+              <span>{t('setting.data.title')}</span>
             </div>
 
             <div className="setting-row">
               <div className="row-label">
-                <span className="label-main">存储目录</span>
-                <span className="label-sub">数据库文件所在位置</span>
+                <span className="label-main">{t('setting.data.dir.label')}</span>
+                <span className="label-sub">{t('setting.data.dir.sub')}</span>
               </div>
               <div className="row-control">
                 <span className="dir-path" title={databaseDirectory}>
-                  {databaseDirectory || '默认位置'}
+                  {databaseDirectory || t('setting.data.dir.default')}
                 </span>
                 <button type="button" className="mini-btn" onClick={() => void chooseDirectory()}>
-                  更改
+                  {t('setting.data.dir.change')}
                 </button>
               </div>
             </div>
@@ -504,28 +546,28 @@ export const Setting = ({ section }: { section: SettingSection }) => {
             <section className="setting-card">
               <div className="card-head">
                 <Download theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-                <span>版本</span>
+                <span>{t('setting.about.version.title')}</span>
               </div>
 
               <div className="setting-row">
                 <div className="row-label">
-                  <span className="label-main">软件版本</span>
-                  <span className="label-sub">灵犀 · Alfred 风格启动器</span>
+                  <span className="label-main">{t('setting.about.version.appLabel')}</span>
+                  <span className="label-sub">{t('setting.about.version.sub')}</span>
                 </div>
                 <span className="row-static">v{about?.currentVersion ?? '…'}</span>
               </div>
 
               <div className="setting-row">
                 <div className="row-label">
-                  <span className="label-main">最新版本</span>
+                  <span className="label-main">{t('setting.about.latest.title')}</span>
                   <span className="label-sub">
                     {aboutLoading
-                      ? '正在检查更新…'
+                      ? t('setting.about.latest.checking')
                       : about?.fetchFailed
-                        ? '检查失败（网络不通或 GitHub 限流）'
+                        ? t('setting.about.latest.failed')
                         : about?.hasUpdate
-                          ? '发现新版本，点击右侧下载'
-                          : '已是最新版本'}
+                          ? t('setting.about.latest.hasUpdate')
+                          : t('setting.about.latest.upToDate')}
                   </span>
                 </div>
                 <div className="row-control">
@@ -536,7 +578,9 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                         'is-bad': about.hasUpdate
                       })}
                     >
-                      {about.hasUpdate ? `v${about.latestVersion} 可用` : '已最新'}
+                      {about.hasUpdate
+                        ? t('setting.about.latest.available', { version: about.latestVersion })
+                        : t('setting.about.latest.latest')}
                     </span>
                   )}
                   {about?.hasUpdate && (
@@ -545,7 +589,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                       className="mini-btn"
                       onClick={() => void window.api.openExternal(about.releaseUrl)}
                     >
-                      去下载
+                      {t('setting.about.download')}
                     </button>
                   )}
                   <button
@@ -554,7 +598,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                     onClick={refreshAbout}
                     disabled={aboutLoading}
                   >
-                    重新检查
+                    {t('setting.about.recheck')}
                   </button>
                 </div>
               </div>
@@ -563,13 +607,13 @@ export const Setting = ({ section }: { section: SettingSection }) => {
             <section className="setting-card">
               <div className="card-head">
                 <User theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-                <span>作者</span>
+                <span>{t('setting.about.author.title')}</span>
               </div>
 
               <div className="setting-row">
                 <div className="row-label">
                   <span className="label-main">{about?.author.name ?? 'lkddi'}</span>
-                  <span className="label-sub">灵犀的开发者</span>
+                  <span className="label-sub">{t('setting.about.author.sub')}</span>
                 </div>
                 <div className="row-control">
                   <button
@@ -580,7 +624,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                     }
                   >
                     <Link theme="outline" size={12} fill="#64748b" strokeWidth={4} />
-                    博客 ay.lc
+                    {t('setting.about.blog')}
                   </button>
                   <button
                     type="button"
@@ -592,7 +636,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                     }
                   >
                     <Github theme="outline" size={12} fill="#64748b" strokeWidth={4} />
-                    GitHub
+                    {t('setting.about.github')}
                   </button>
                 </div>
               </div>
@@ -610,8 +654,9 @@ export const Setting = ({ section }: { section: SettingSection }) => {
         <input type="hidden" name="webSearchEngine" value={engine} readOnly />
         <input type="hidden" name="webEngines" value={JSON.stringify(engines)} readOnly />
         <input type="hidden" name="searchDirectories" value={JSON.stringify(dirs)} readOnly />
+        <input type="hidden" name="language" value={language} readOnly />
 
-        <footer className="page-footer">灵犀 · 配置保存在本机数据库</footer>
+        <footer className="page-footer">{t('setting.footer')}</footer>
       </main>
     </Form>
   )

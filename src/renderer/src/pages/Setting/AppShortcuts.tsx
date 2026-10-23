@@ -3,6 +3,7 @@ import { Close, Plus, Search as SearchIcon } from '@icon-park/react'
 import { Input, Modal } from 'antd'
 import classNames from 'classnames'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useT } from '@renderer/i18n'
 import './AppShortcuts.scss'
 
 type Row = AppShortcutStateType & {
@@ -16,6 +17,7 @@ type Row = AppShortcutStateType & {
  * 这里只负责把失败原因展示清楚。
  */
 export const AppShortcuts = () => {
+  const t = useT()
   const [items, setItems] = useState<AppShortcutStateType[]>([])
   const [pending, setPending] = useState<AppInfoType[]>([])
   const [icons, setIcons] = useState<Record<string, string>>({})
@@ -154,17 +156,17 @@ export const AppShortcuts = () => {
     <>
       <div className="setting-row">
         <div className="row-label">
-          <span className="label-main">应用快捷键</span>
+          <span className="label-main">{t('appShortcuts.title')}</span>
           <span className="label-sub">
             {rows.length > 0
-              ? `已绑定 ${rows.length} 个应用，按快捷键启动，再按一次隐藏`
-              : '为单个应用绑定快捷键，按一下启动、再按一下隐藏'}
+              ? t('appShortcuts.boundSub', { n: rows.length })
+              : t('appShortcuts.unboundSub')}
           </span>
         </div>
         <div className="row-control">
           <button type="button" className="mini-btn accent" onClick={() => void openPicker()}>
             <Plus theme="outline" size={12} fill="#0a84ff" strokeWidth={4} />
-            添加应用
+            {t('appShortcuts.addApp')}
           </button>
         </div>
       </div>
@@ -194,13 +196,13 @@ export const AppShortcuts = () => {
                     {error
                       ? error
                       : row.persisted && row.registered
-                        ? `已生效 · ${row.accelerator}`
-                        : '设置一个快捷键后立即生效'}
+                        ? t('appShortcuts.activeStatus', { acc: row.accelerator })
+                        : t('appShortcuts.idleStatus')}
                   </span>
                 </div>
                 <ShortCutRecorder
                   value={row.accelerator}
-                  placeholder="按下组合键"
+                  placeholder={t('appShortcuts.recordPlaceholder')}
                   className="app-cut-recorder"
                   onRecordStart={() =>
                     setRowError((prev) => {
@@ -214,7 +216,7 @@ export const AppShortcuts = () => {
                 <button
                   type="button"
                   className="icon-btn"
-                  title="移除"
+                  title={t('appShortcuts.removeTitle')}
                   onClick={() => void removeRow(row)}
                 >
                   <Close theme="outline" size={13} fill="#94a3b8" strokeWidth={4} />
@@ -225,12 +227,12 @@ export const AppShortcuts = () => {
         </div>
       ) : (
         <div className="app-cut-empty">
-          还没有绑定应用。添加后按快捷键即可启动，应用已在最前时再按一次收起。
+          {t('appShortcuts.empty')}
         </div>
       )}
 
       <p className="app-cut-hint">
-        隐藏已在最前的应用需要系统「自动化」授权：首次使用按系统提示允许灵犀控制 System Events。
+        {t('appShortcuts.hint')}
       </p>
 
       <Modal
@@ -238,7 +240,7 @@ export const AppShortcuts = () => {
         onCancel={() => setPickerOpen(false)}
         footer={null}
         width={520}
-        title="添加到应用快捷键"
+        title={t('appShortcuts.pickerTitle')}
         destroyOnClose
         className="app-picker-modal"
       >
@@ -246,7 +248,7 @@ export const AppShortcuts = () => {
           autoFocus
           allowClear
           value={keyword}
-          placeholder="搜索应用名称，支持中英文"
+          placeholder={t('appShortcuts.searchPlaceholder')}
           prefix={<SearchIcon theme="outline" size={14} fill="#94a3b8" strokeWidth={4} />}
           onChange={(event) => setKeyword(event.target.value)}
         />
@@ -272,12 +274,12 @@ export const AppShortcuts = () => {
                 {app.alias && app.alias !== app.name && (
                   <span className="app-picker-sub">{app.name}</span>
                 )}
-                {bound && <span className="app-picker-bound">已添加</span>}
+                {bound && <span className="app-picker-bound">{t('appShortcuts.bound')}</span>}
               </button>
             )
           })}
           {filteredApps.length === 0 && (
-            <div className="app-picker-empty">没有匹配的应用</div>
+            <div className="app-picker-empty">{t('appShortcuts.noMatch')}</div>
           )}
         </div>
       </Modal>

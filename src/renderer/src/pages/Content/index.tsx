@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { Form, useLoaderData, useSubmit } from 'react-router-dom'
+import { useT } from '@renderer/i18n'
 import './content.scss'
 
 const SAVE_DELAY = 400
 
 export const Content = () => {
+  const t = useT()
   const submit = useSubmit()
   const { content, categories } = useLoaderData() as {
     content: ContentType
@@ -37,6 +39,7 @@ export const Content = () => {
         <input
           name="title"
           autoFocus
+          placeholder={t('content.titlePlaceholder')}
           defaultValue={content.title}
           onChange={(e) => save(e.currentTarget.form)}
           onBlur={(e) => save(e.currentTarget.form, 0)}
@@ -46,7 +49,7 @@ export const Content = () => {
           defaultValue={String(content.category_id ?? 0)}
           onChange={(e) => save(e.currentTarget.form, 0)}
         >
-          <option value="0">未分类</option>
+          <option value="0">{t('content.uncategorized')}</option>
           {categories.map((category) => (
             <option value={category.id} key={category.id}>
               {category.name}
@@ -55,7 +58,7 @@ export const Content = () => {
         </select>
         <textarea
           name="content"
-          placeholder="请输入内容..."
+          placeholder={t('content.placeholder')}
           defaultValue={content.content}
           onChange={(e) => save(e.currentTarget.form)}
           onBlur={(e) => save(e.currentTarget.form, 0)}

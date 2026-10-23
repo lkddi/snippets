@@ -5,11 +5,11 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 import { ChangeEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useT, useI18nStore } from '@renderer/i18n'
 import './clipboard.scss'
 
-// 相对时间展示需要 relativeTime 插件 + 中文语言包
+// 相对时间展示需要 relativeTime 插件
 dayjs.extend(relativeTime)
-dayjs.locale('zh-cn')
 
 /** 预览文本截断长度：超出部分反正被 line-clamp-2 裁掉，留着只会拖慢布局/绘制 */
 const PREVIEW_MAX = 600
@@ -65,9 +65,18 @@ const ClipboardRow = memo(function ClipboardRow({
 })
 
 export const Clipboard = (): JSX.Element => {
+  const t = useT()
   const [items, setItems] = useState<ClipboardItemType[]>([])
   const [keyword, setKeyword] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+
+  // 相对时间随语言切换：中文用 zh-cn，其余用内置 en
+  const locale = useI18nStore((s) => s.locale)
+  const systemLocale = useI18nStore((s) => s.systemLocale)
+  useEffect(() => {
+    const eff = locale === 'system' ? systemLocale : locale
+    dayjs.locale(eff === 'zh-CN' ? 'zh-cn' : 'en')
+  }, [locale, systemLocale])
 
   // keyword 用 ref 中转：load / 粘贴 / 删除等回调保持稳定引用，
   // 既省掉输入过滤词时的重复订阅，也让行级 memo 的回调 prop 恒定不变
@@ -179,7 +188,7 @@ export const Clipboard = (): JSX.Element => {
           <Input
             value={keyword}
             onChange={handleFilter}
-            placeholder="过滤剪贴板内容"
+            placeholder={t('clipboard.filterPlaceholder')}
             autoFocus
             allowClear
             className="nodrag"
@@ -197,20 +206,20 @@ export const Clipboard = (): JSX.Element => {
               onRemove={removeById}
             />
           ))}
-          {items.length === 0 && <div className="empty">暂无剪贴板记录</div>}
+          {items.length === 0 && <div className="empty">{t('clipboard.empty')}</div>}
         </section>
         <footer className="nodrag">
           <span className="clipboard-hint">
             <kbd>↑</kbd>
-            <kbd>↓</kbd> 选择
-            <kbd>↩</kbd> 粘贴
-            <kbd>esc</kbd> 关闭
+            <kbd>↓</kbd> {t('clipboard.hintSelect')}
+            <kbd>↩</kbd> {t('clipboard.hintPaste')}
+            <kbd>esc</kbd> {t('clipboard.hintClose')}
           </span>
           <span
             className="cursor-pointer text-xs text-slate-500 hover:text-red-500 select-none"
             onClick={() => void clearAll()}
           >
-            清空全部
+            {t('clipboard.clearAll')}
           </span>
         </footer>
       </div>
