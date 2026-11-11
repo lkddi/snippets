@@ -1,7 +1,16 @@
 import { app, Menu, MenuItemConstructorOptions } from 'electron'
-import { showAndFocus } from './windows'
+import { findWindow, showAndFocus } from './windows'
 
-const openSettings = (): void => {
+/**
+ * Cmd+, 切换设置窗口：未显示 / 未聚焦时唤起，已聚焦时再按就收起。
+ * 菜单加速键只在应用本身拿到焦点时才触发，所以「聚焦中」即可判定为用户想关闭。
+ */
+const toggleSettings = (): void => {
+  const win = findWindow('config')
+  if (win && win.isVisible() && win.isFocused()) {
+    win.hide()
+    return
+  }
   // showAndFocus 会先收起搜索窗等浮层，保证设置窗在最上面
   showAndFocus('config')
 }
@@ -13,8 +22,8 @@ const openSettings = (): void => {
 export const initAppMenu = (): void => {
   const settingsItem: MenuItemConstructorOptions =
     process.platform === 'darwin'
-      ? { label: '设置…', accelerator: 'CmdOrCtrl+,', click: openSettings }
-      : { label: '设置…', accelerator: 'Ctrl+,', click: openSettings }
+      ? { label: '设置…', accelerator: 'CmdOrCtrl+,', click: toggleSettings }
+      : { label: '设置…', accelerator: 'Ctrl+,', click: toggleSettings }
 
   const template: MenuItemConstructorOptions[] = [
     ...(process.platform === 'darwin'
