@@ -18,6 +18,8 @@ export default async () => {
     webEngines: defaultEngines,
     searchDirectories: [],
     fileSearchExtensions: [],
+    textExpansionEnabled: true,
+    textExpansions: [],
     appShortCuts: [],
     language: 'system'
   }

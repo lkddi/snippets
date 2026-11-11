@@ -22,6 +22,8 @@ import { initTray } from './tray'
 import './loginItem'
 import { applyDockIconFromConfig } from './dockIcon'
 import { captureFrontmostApp } from './pasteBack'
+// 文本扩展：导入即注册 expansions:reload IPC
+import { reloadExpansions } from './expander'
 
 // 单实例：开机自启后用户又双击了一次应用 / 图标，会跑出第二个实例。
 // 全局热键只有一个进程能拿到，第二个实例拿不到却又抢着显示窗口，
@@ -99,6 +101,13 @@ app.whenReady().then(() => {
     applyDockIconFromConfig()
   } catch (error) {
     console.error('应用程序坞图标设置失败', error)
+  }
+
+  // 文本扩展：按配置启停全局键盘钩子（有规则才启动）
+  try {
+    reloadExpansions()
+  } catch (error) {
+    console.error('文本扩展初始化失败', error)
   }
 
   // 搜索窗只创建不显示，等快捷键或托盘唤起

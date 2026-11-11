@@ -49,6 +49,8 @@ export const config = (): ConfigDataType => {
     webEngines: DEFAULT_WEB_ENGINES,
     searchDirectories: [],
     fileSearchExtensions: [],
+    textExpansionEnabled: true,
+    textExpansions: [],
     appShortCuts: [],
     language: 'system'
   }

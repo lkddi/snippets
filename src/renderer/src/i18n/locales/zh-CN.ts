@@ -6,6 +6,7 @@ const zhCN = {
       shortcuts: { title: '快捷键', desc: '唤起搜索窗与剪贴板面板的全局快捷键' },
       apps: { title: '应用快捷键', desc: '给单个应用绑定启动 / 隐藏热键，按一下启动，再按一下收起' },
       search: { title: '搜索', desc: '网页兜底搜索与文件搜索目录' },
+      expansions: { title: '文本扩展', desc: '输入缩写自动展开为常用内容' },
       clipboard: { title: '剪贴板', desc: '历史记录的保存时长' },
       data: { title: '数据', desc: '片段与剪贴板数据存放位置' },
       about: { title: '说明', desc: '软件版本、更新与作者信息' }
@@ -41,6 +42,17 @@ const zhCN = {
         custom: '其它',
         placeholder: '补充其它类型，如：epub, ipynb'
       }
+    },
+    expansions: {
+      title: '文本扩展',
+      enable: {
+        label: '启用文本扩展',
+        sub: '在任意应用中输入缩写后自动替换为内容；需要辅助功能权限'
+      },
+      abbrPlaceholder: '缩写，如 !k',
+      textPlaceholder: '展开后的内容，如 bash <(curl -sL kejilion.sh)',
+      add: '添加缩写',
+      hint: '输入缩写后会删除缩写字符并粘贴内容，长缩写优先匹配；建议用特殊字符开头（如 !、;）避免误触，缩写不要与日常输入冲突'
     },
     clipboard: {
       title: '历史记录',

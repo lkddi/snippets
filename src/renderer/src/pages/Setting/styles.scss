@@ -458,6 +458,52 @@ kbd {
   }
 }
 
+/* ---- 文本扩展 ---- */
+
+.exp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.exp-abbr {
+  flex-shrink: 0;
+  width: 120px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+  font-size: 12px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  color: #0a84ff;
+  background: #f8fafc;
+
+  &:focus {
+    border-color: #94a3b8;
+    background: #fff;
+  }
+}
+
+.exp-text {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+  font-size: 12px;
+  color: #334155;
+  background: #f8fafc;
+
+  &:focus {
+    border-color: #94a3b8;
+    background: #fff;
+  }
+}
+
 /* ---- 存储目录 ---- */
 
 .dir-path {

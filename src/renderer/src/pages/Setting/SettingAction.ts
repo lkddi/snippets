@@ -128,6 +128,24 @@ export default async ({ request }) => {
     // 同上，保持空数组 = 不限类型
   }
 
+  // 文本扩展：总开关 + 规则列表（缩写和内容都非空才收）
+  const textExpansionEnabled = String(data.textExpansionEnabled) === 'true'
+  let textExpansions: TextExpansionType[] = []
+  try {
+    const parsed = JSON.parse(String(data.textExpansions ?? '[]'))
+    if (Array.isArray(parsed)) {
+      textExpansions = parsed
+        .map((item) => item as Partial<TextExpansionType>)
+        .filter(
+          (item): item is TextExpansionType =>
+            Boolean(item?.abbr?.trim()) && Boolean(item?.text)
+        )
+        .map((item) => ({ abbr: item.abbr.trim(), text: item.text }))
+    }
+  } catch {
+    // 保持空列表，下次设置页再配置
+  }
+
   const content = JSON.stringify({
     shortCut: searchAccelerator,
     databaseDirectory: data.databaseDirectory,
@@ -139,6 +157,8 @@ export default async ({ request }) => {
     webEngines: engines,
     searchDirectories,
     fileSearchExtensions,
+    textExpansionEnabled,
+    textExpansions,
     // 应用快捷键由 appShortCut:* 这组 IPC 单独维护，这里必须原样带回，
     // 否则每次保存普通设置都会把绑定清空
     appShortCuts: await readAppShortCuts(),
@@ -162,6 +182,9 @@ export default async ({ request }) => {
 
   // 目录有变化时通知主进程重建文件扫描缓存
   window.api.invalidateFiles()
+
+  // 文本扩展规则有变化时重启键盘钩子
+  window.api.reloadExpansions()
 
   return { ok: true, warning }
 }

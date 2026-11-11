@@ -7,12 +7,16 @@ import {
   FolderSearch,
   Github,
   Keyboard,
+  Lightning,
   Link,
   Power,
   User,
   WebPage
 } from '@icon-park/react'
-import { Alert, Switch } from 'antd'
+import {
+  Alert,
+  Switch
+} from 'antd'
 import classNames from 'classnames'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Form, useActionData, useLoaderData } from 'react-router-dom'
@@ -40,6 +44,7 @@ export type SettingSection =
   | 'apps'
   | 'webSearch'
   | 'files'
+  | 'expansions'
   | 'clipboard'
   | 'data'
   | 'about'
@@ -101,6 +106,11 @@ const parseFileExts = (raw: string): string[] =>
     .filter(Boolean)
   // 开机启动：真实状态以系统登录项为准，配置里的值只做初始回显
   const [launchAtLogin, setLaunchAtLogin] = useState(Boolean(config.launchAtLogin))
+  // 文本扩展：总开关 + 规则列表（缩写 → 展开内容）
+  const [expEnabled, setExpEnabled] = useState(config.textExpansionEnabled !== false)
+  const [expansions, setExpansions] = useState<TextExpansionType[]>(
+    Array.isArray(config.textExpansions) ? config.textExpansions : []
+  )
   // 程序坞图标：隐藏后应用只驻留菜单栏
   const [hideDockIcon, setHideDockIcon] = useState(Boolean(config.hideDockIcon))
   // 当前平台是否支持隐藏程序坞图标（仅 macOS）
@@ -265,6 +275,36 @@ const parseFileExts = (raw: string): string[] =>
     const presets = selectedExts.filter((item) => PRESET_EXTS.includes(item))
     setSelectedExts([...presets, ...new Set(parseFileExts(customExtsDraft))])
     window.api.invalidateFiles()
+    submitForm()
+  }
+
+  // ---- 文本扩展 ----
+
+  // 修改某条规则（输入过程只改本地状态，失焦才提交并重启钩子）
+  const setExpansionAt = (index: number, patch: Partial<TextExpansionType>): void => {
+    setExpansions(expansions.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+  }
+
+  const commitExpansions = (): void => {
+    window.api.reloadExpansions()
+    submitForm()
+  }
+
+  const addExpansion = (): void => {
+    setExpansions([...expansions, { abbr: '', text: '' }])
+    window.api.reloadExpansions()
+    submitForm()
+  }
+
+  const removeExpansion = (index: number): void => {
+    setExpansions(expansions.filter((_, i) => i !== index))
+    window.api.reloadExpansions()
+    submitForm()
+  }
+
+  const handleExpToggle = (checked: boolean): void => {
+    setExpEnabled(checked)
+    window.api.reloadExpansions()
     submitForm()
   }
 
@@ -584,6 +624,70 @@ const parseFileExts = (raw: string): string[] =>
           </section>
         )}
 
+        {section === 'expansions' && (
+          <section className="setting-card">
+            <div className="card-head">
+              <Lightning theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+              <span>{t('setting.expansions.title')}</span>
+            </div>
+
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">{t('setting.expansions.enable.label')}</span>
+                <span className="label-sub">{t('setting.expansions.enable.sub')}</span>
+              </div>
+              <div className="row-control">
+                <Switch checked={expEnabled} onChange={handleExpToggle} size="small" />
+              </div>
+            </div>
+
+            {expEnabled && (
+              <>
+                <div className="dir-list">
+                  {expansions.map((item, index) => (
+                    <div className="exp-row" key={index}>
+                      <input
+                        className="exp-abbr nodrag"
+                        value={item.abbr}
+                        onChange={(e) => setExpansionAt(index, { abbr: e.target.value })}
+                        onBlur={commitExpansions}
+                        placeholder={t('setting.expansions.abbrPlaceholder')}
+                        spellCheck={false}
+                      />
+                      <input
+                        className="exp-text nodrag"
+                        value={item.text}
+                        onChange={(e) => setExpansionAt(index, { text: e.target.value })}
+                        onBlur={commitExpansions}
+                        placeholder={t('setting.expansions.textPlaceholder')}
+                        spellCheck={false}
+                      />
+                      <button
+                        type="button"
+                        className="mini-btn danger"
+                        onClick={() => removeExpansion(index)}
+                      >
+                        {t('common.remove')}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="setting-row">
+                  <div className="row-label">
+                    <span className="label-sub">{t('setting.expansions.hint')}</span>
+                  </div>
+                  <div className="row-control">
+                    <button type="button" className="mini-btn" onClick={addExpansion}>
+                      {t('setting.expansions.add')}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
         {section === 'clipboard' && (
           <section className="setting-card">
             <div className="card-head">
@@ -767,6 +871,8 @@ const parseFileExts = (raw: string): string[] =>
           value={JSON.stringify(selectedExts)}
           readOnly
         />
+        <input type="hidden" name="textExpansionEnabled" value={String(expEnabled)} readOnly />
+        <input type="hidden" name="textExpansions" value={JSON.stringify(expansions)} readOnly />
         <input type="hidden" name="language" value={language} readOnly />
 
         <footer className="page-footer">{t('setting.footer')}</footer>

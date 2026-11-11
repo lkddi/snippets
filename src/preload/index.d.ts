@@ -40,6 +40,8 @@ declare global {
       selectSearchDirectory: () => Promise<string>
       /** 目录配置变化后通知主进程重建文件扫描缓存 */
       invalidateFiles: () => void
+      /** 文本扩展配置变化后重启键盘钩子 */
+      reloadExpansions: () => void
       /** 解析搜索词该用哪个引擎（命中「关键字 关键词」时切引擎） */
       resolveWebSearch: (query: string) => Promise<{
         engine: string

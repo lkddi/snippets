@@ -6,6 +6,7 @@ const zhTW = {
       shortcuts: { title: '快速鍵', desc: '喚起搜尋窗與剪貼簿面板的全域快速鍵' },
       apps: { title: 'App 快速鍵', desc: '為單一 App 綁定啟動 / 隱藏熱鍵，按一下啟動，再按一下收起' },
       search: { title: '搜尋', desc: '網頁兜底搜尋與檔案搜尋目錄' },
+      expansions: { title: '文字擴展', desc: '輸入縮寫自動展開為常用內容' },
       clipboard: { title: '剪貼簿', desc: '歷史記錄的保留時間' },
       data: { title: '資料', desc: '片段與剪貼簿資料存放位置' },
       about: { title: '關於', desc: '軟體版本、更新與作者資訊' }
@@ -41,6 +42,17 @@ const zhTW = {
         custom: '其它',
         placeholder: '補充其它類型，如：epub, ipynb'
       }
+    },
+    expansions: {
+      title: '文字擴展',
+      enable: {
+        label: '啟用文字擴展',
+        sub: '在任意應用中輸入縮寫後自動替換為內容；需要輔助功能權限'
+      },
+      abbrPlaceholder: '縮寫，如 !k',
+      textPlaceholder: '展開後的內容，如 bash <(curl -sL kejilion.sh)',
+      add: '加入縮寫',
+      hint: '輸入縮寫後會刪除縮寫字元並貼上內容，長縮寫優先匹配；建議用特殊字元開頭（如 !、;）避免誤觸，縮寫不要與日常輸入衝突'
     },
     clipboard: {
       title: '歷史記錄',

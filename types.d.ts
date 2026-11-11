@@ -44,6 +44,10 @@ type ConfigDataType = {
   searchDirectories: string[]
   /** 文件搜索的扩展名白名单（不含点、小写），空数组 = 不限类型 */
   fileSearchExtensions: string[]
+  /** 是否启用文本扩展（全局键盘钩子 + 自动替换） */
+  textExpansionEnabled: boolean
+  /** 文本扩展规则：在任意应用输入 abbr 自动替换为 text */
+  textExpansions: TextExpansionType[]
   /** 按应用绑定的全局快捷键（启动 / 隐藏切换） */
   appShortCuts: AppShortcutType[]
   /** 界面语言：'system' 跟随系统（解析为系统语言，未支持回落英文），或显式指定简体 / 繁体 / 英文 */
@@ -89,6 +93,14 @@ type FileType = {
   path: string
   /** 目录或文件，目录在 Finder 中打开，文件用默认应用打开 */
   isDir: boolean
+}
+
+/** 文本扩展规则：输入 abbr（如 !k）自动替换为 text */
+type TextExpansionType = {
+  /** 触发缩写，区分大小写，建议以特殊字符开头避免误触 */
+  abbr: string
+  /** 展开后的内容 */
+  text: string
 }
 
 /** 网页搜索兜底项：当前关键词 + 使用的搜索引擎 */

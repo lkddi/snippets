@@ -7,6 +7,7 @@ const en = {
       shortcuts: { title: 'Shortcuts', desc: 'Global hotkeys to open search and the clipboard panel' },
       apps: { title: 'App Shortcuts', desc: 'Bind a launch / hide hotkey per app: press to launch, press again to hide' },
       search: { title: 'Search', desc: 'Web fallback search and file search directories' },
+      expansions: { title: 'Text Expansion', desc: 'Type an abbreviation to expand it into content' },
       clipboard: { title: 'Clipboard', desc: 'How long clipboard history is kept' },
       data: { title: 'Data', desc: 'Where snippets and clipboard data are stored' },
       about: { title: 'About', desc: 'Version, updates and author info' }
@@ -42,6 +43,17 @@ const en = {
         custom: 'Custom',
         placeholder: 'Add others, e.g. epub, ipynb'
       }
+    },
+    expansions: {
+      title: 'Text Expansion',
+      enable: {
+        label: 'Enable text expansion',
+        sub: 'Type an abbreviation in any app to replace it with content; requires Accessibility permission'
+      },
+      abbrPlaceholder: 'Abbreviation, e.g. !k',
+      textPlaceholder: 'Expanded text, e.g. bash <(curl -sL kejilion.sh)',
+      add: 'Add abbreviation',
+      hint: 'The abbreviation is deleted and replaced with the content; longer abbreviations match first. Prefer a leading symbol (e.g. ! or ;) to avoid false triggers'
     },
     clipboard: {
       title: 'History',

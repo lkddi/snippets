@@ -7,6 +7,7 @@ import {
   FolderSearch,
   Info,
   Keyboard,
+  Lightning,
   Power
 } from '@icon-park/react'
 //右键菜单
@@ -33,6 +34,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: '/config/apps', label: '应用快捷键', icon: ApplicationOne },
       { to: '/config/webSearch', label: '网页搜索', icon: Earth },
       { to: '/config/files', label: '文件搜索', icon: FolderSearch },
+      { to: '/config/expansions', label: '文本扩展', icon: Lightning },
       { to: '/config/clipboard', label: '剪贴板', icon: Clipboard },
       { to: '/config/data', label: '数据', icon: DatabaseConfig },
       { to: '/config/about', label: '说明', icon: Info }

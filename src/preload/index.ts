@@ -75,6 +75,10 @@ const api = {
   invalidateFiles: () => {
     ipcRenderer.send('files:invalidate')
   },
+  // 文本扩展：配置保存后让主进程按新规则重启键盘钩子
+  reloadExpansions: () => {
+    ipcRenderer.send('expansions:reload')
+  },
   // 网页搜索兜底：解析「关键字 + 关键词」用哪个引擎，以及打开搜索
   resolveWebSearch: (query: string) => {
     return ipcRenderer.invoke('web:resolve', query) as Promise<{
