@@ -101,6 +101,23 @@ export const Clipboard = (): JSX.Element => {
     void load()
   }, [keyword, load])
 
+  // 面板是失焦即隐藏的浮层：focus 事件等价于「重新唤起」，
+  // 把上次的过滤词与选中位置清掉，恢复完整列表再开始新的选择
+  useEffect(() => {
+    const reset = (): void => {
+      if (keywordRef.current) {
+        // 清词后 keyword 变化会自动触发 load
+        setKeyword('')
+      } else {
+        // 没输入过过滤词也要刷一次，唤起时拿到最新记录
+        void load()
+      }
+      setActiveIndex(0)
+    }
+    window.addEventListener('focus', reset)
+    return () => window.removeEventListener('focus', reset)
+  }, [load])
+
   // 主进程有新剪贴板记录时刷新列表（携带当前过滤词重新查询）
   useEffect(() => {
     return window.api.onClipboardUpdated(() => void load())
