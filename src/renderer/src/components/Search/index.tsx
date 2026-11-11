@@ -1,12 +1,17 @@
 import { Search as SearchIcon, SettingOne } from '@icon-park/react'
 import useSearch from '@renderer/hooks/useSearch'
+import useFocusOnShow from '@renderer/hooks/useFocusOnShow'
 import { useT } from '@renderer/i18n'
-import { ChangeEvent } from 'react'
+import { ChangeEvent, useRef } from 'react'
 import './search.scss'
 
 export default function Search() {
   const { handleSearch, search } = useSearch()
   const t = useT()
+  const inputRef = useRef<HTMLInputElement>(null)
+  // 窗口是懒创建后反复 hide/show 复用的，autoFocus 只管首次挂载，
+  // 之后每次唤起都要靠这个 hook 把光标放回输入框
+  useFocusOnShow(inputRef)
 
   // 搜索窗是置顶浮层，打开设置前先收起，否则会压住设置窗；
   // 齿轮直接落到「代码片段」页，这是搜索之外最常用的入口
@@ -28,6 +33,7 @@ export default function Search() {
         />
         <input
           className="search-input nodrag"
+          ref={inputRef}
           value={search}
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleSearch(e)}
           placeholder={t('search.placeholder')}

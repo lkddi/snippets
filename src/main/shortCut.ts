@@ -250,6 +250,7 @@ const toggleSearchWindow = (): void => {
     }
     if (process.platform === 'darwin') app.focus({ steal: true })
     win.focus()
+    win.webContents.focus()
     return
   }
   // macOS 隐藏程序坞图标后应用是 accessory 模式，必须显式激活才能让窗口真正浮到最前
@@ -258,6 +259,9 @@ const toggleSearchWindow = (): void => {
   if (process.platform === 'darwin') app.focus({ steal: true })
   win.show()
   win.focus()
+  // win.focus() 只保证原生窗口成为焦点窗口，webContents 层可能还停在失焦状态，
+  // 表现为窗口弹出来了但输入框里没有光标；渲染层另有 hook 把光标放回输入框
+  win.webContents.focus()
 }
 
 export const registerSearchShortCut = (shortCut: string, notify = false): boolean => {

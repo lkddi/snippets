@@ -1,11 +1,12 @@
 import { Delete } from '@icon-park/react'
-import { Input } from 'antd'
+import { Input, InputRef } from 'antd'
 import classNames from 'classnames'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 import 'dayjs/locale/zh-tw'
 import { ChangeEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import useFocusOnShow from '@renderer/hooks/useFocusOnShow'
 import { useT, useI18nStore } from '@renderer/i18n'
 import './clipboard.scss'
 
@@ -83,6 +84,11 @@ export const Clipboard = (): JSX.Element => {
   // 既省掉输入过滤词时的重复订阅，也让行级 memo 的回调 prop 恒定不变
   const keywordRef = useRef(keyword)
   keywordRef.current = keyword
+
+  // 面板是懒创建后反复 hide/show 复用的，autoFocus 只管首次挂载，
+  // 每次唤起都要把光标放回过滤输入框
+  const filterInputRef = useRef<InputRef>(null)
+  useFocusOnShow(filterInputRef)
 
   const load = useCallback(async (): Promise<void> => {
     const list = await window.api.clipboardList(keywordRef.current)
@@ -193,6 +199,7 @@ export const Clipboard = (): JSX.Element => {
             autoFocus
             allowClear
             className="nodrag"
+            ref={filterInputRef}
           />
         </section>
         <section className="clipboard-list nodrag">

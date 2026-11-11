@@ -114,6 +114,8 @@ export const showAndFocus = (name: WindowNameType): BrowserWindow => {
   if (process.platform === 'darwin') app.focus({ steal: true })
   win.show()
   win.focus()
+  // webContents 层补一次聚焦，保证页面里的输入控件能立刻接收键盘输入
+  win.webContents.focus()
   return win
 }
 
