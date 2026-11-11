@@ -1,4 +1,4 @@
-import { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from 'electron'
 import { createWindow, OptionsType } from './createWindow'
 
 interface WindowConfig {
@@ -109,6 +109,9 @@ export const showAndFocus = (name: WindowNameType): BrowserWindow => {
     }
   }
 
+  // 隐藏程序坞图标时应用处于 accessory 模式，从托盘菜单唤起设置这类普通窗口
+  // 只靠 show() 可能停在其它窗口后面，先激活应用再显示
+  if (process.platform === 'darwin') app.focus({ steal: true })
   win.show()
   win.focus()
   return win

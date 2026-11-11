@@ -7,3 +7,4 @@ out
 .vscode/
 electron.vite.config.*.mjs
 dev-app-update.yml
+*.tsbuildinfo

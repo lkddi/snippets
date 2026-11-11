@@ -16,12 +16,25 @@ import { initTable } from './db/tables'
 import { setMainConfig } from './db/config'
 import { registerAppGlobShortcut } from './shortCut'
 import { registerAppShortCuts } from './appShortcuts'
-import { getByNameWindow } from './windows'
+import { getByNameWindow, showAndFocus } from './windows'
 import { initAppMenu } from './menu'
 import { initTray } from './tray'
 import './loginItem'
 import { applyDockIconFromConfig } from './dockIcon'
 import { captureFrontmostApp } from './pasteBack'
+
+// 单实例：开机自启后用户又双击了一次应用 / 图标，会跑出第二个实例。
+// 全局热键只有一个进程能拿到，第二个实例拿不到却又抢着显示窗口，
+// 表现就是"快捷键没反应"。这里让后来的实例直接退出，由已有实例响应。
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  // 第二个实例启动时，已有实例直接唤起搜索窗
+  app.on('second-instance', () => {
+    captureFrontmostApp()
+    showAndFocus('search')
+  })
+}
 
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
