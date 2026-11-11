@@ -1,28 +1,3 @@
-/**
- * macOS 默认占用这些组合键：主进程会把它们判为「未生效」，这里给出人话说明。
- * 用户已在系统设置里让出这些键时仍可正常使用，所以只告警、不拦保存。
- */
-const SYSTEM_HINTS: Record<string, string> = {
-  'Command+Space':
-    'macOS 用它打开聚焦搜索（Spotlight），应用抢不到，建议改成 Option+Space；确要用它需先在「系统设置 → 键盘 → 键盘快捷键」里关掉 Spotlight',
-  'Control+Space': 'macOS 用它切换输入法，应用抢不到，建议改成 Option+Space',
-  'Command+Option+Space': 'macOS 用它打开访达搜索窗口，应用抢不到，建议改成 Option+Space',
-  'Command+Control+Space': 'macOS 用它打开「表情与符号」，应用抢不到',
-  'Command+Tab': 'macOS 用它切换应用，应用无法接管',
-  'Command+Shift+Tab': 'macOS 用它反向切换应用，应用无法接管',
-  'Command+`': 'macOS 用它在同一应用的窗口间切换，应用无法接管',
-  'Command+Option+Escape': 'macOS 用它打开「强制退出」，应用无法接管',
-  'Command+Control+Q': 'macOS 用它锁定屏幕，应用无法接管',
-  'Command+Shift+Q': 'macOS 用它退出登录，应用无法接管',
-  'Command+Shift+3': 'macOS 用它截图，应用无法接管',
-  'Command+Shift+4': 'macOS 用它截图，应用无法接管',
-  'Command+Shift+5': 'macOS 用它截图 / 录屏，应用无法接管',
-  'Command+Q': '会触发应用退出，不能用作唤起键',
-  'Command+W': '会关闭当前窗口，不能用作唤起键',
-  'Command+M': '会最小化当前窗口，不能用作唤起键',
-  'Command+H': '会隐藏应用，不能用作唤起键'
-}
-
 /** 读取当前已保存的应用快捷键绑定（由 appShortCut:* IPC 维护，保存普通设置时要原样保留） */
 const readAppShortCuts = async (): Promise<AppShortcutType[]> => {
   try {
@@ -91,11 +66,17 @@ export default async ({ request }) => {
   // 空快捷键 = 清除（主进程会注销旧键并返回成功），非空才走注册校验
   const searchAccelerator = String(data.shortCut ?? '').trim()
   const isRegister = await window.api.shortCut(searchAccelerator)
-  if (!isRegister && !SYSTEM_HINTS[searchAccelerator]) {
-    // 之前注册失败也当作成功，用户以为配置保存了其实没生效
-    return { error: `快捷键 ${searchAccelerator || '(空)'} 注册失败，请换一个组合键` }
+  // 系统级占用（Spotlight / 输入法等）由主进程读系统真实开关判定：
+  // 用户已在系统设置里让出该键就能正常生效；仍被占用时允许保存但给出告警
+  let warning = ''
+  if (!isRegister) {
+    const status = await window.api.getShortCutStatus()
+    if (!status.reserved) {
+      // 其它失败（被别的应用占用等）不能装作保存成功
+      return { error: `快捷键 ${searchAccelerator || '(空)'} 注册失败，请换一个组合键` }
+    }
+    warning = status.error
   }
-  // 系统占用的组合键：保存照旧（用户可以在系统设置里让出该键），最后返回醒目告警
 
   // 剪贴板快捷键：'doubleOption' 表示双击 Option 模式，主进程会注销已注册的标准快捷键，
   // 所以两种模式都要走一次 IPC，保证切换双向生效
@@ -169,9 +150,6 @@ export default async ({ request }) => {
 
   // 目录有变化时通知主进程重建文件扫描缓存
   window.api.invalidateFiles()
-
-  const isMacPlatform = (window.electron?.process?.platform ?? '') === 'darwin'
-  const warning = (isMacPlatform && SYSTEM_HINTS[searchAccelerator]) || ''
 
   return { ok: true, warning }
 }

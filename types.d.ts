@@ -120,6 +120,8 @@ type ShortCutStatusType = {
   registered: boolean
   /** 最近一次注册失败的原因，注册成功时为空 */
   error: string
+  /** 失败原因是「被 macOS 系统快捷键占用」：此时允许保存配置（用户可去系统设置里让出该键），只作告警 */
+  reserved: boolean
 }
 
 /** 本机已安装应用（应用启动器搜索结果） */

@@ -20,7 +20,12 @@ const en = {
     },
     shortcuts: {
       title: 'Global Shortcuts',
-      openSearch: { label: 'Open search', sub: 'Open the search window globally', hintDefault: 'No shortcut set; click the box on the right and press a key combo' },
+      openSearch: {
+        label: 'Open search',
+        sub: 'Open the search window globally',
+        hintDefault: 'No shortcut set; click the box on the right and press a key combo',
+        registered: 'Active: {acc}'
+      },
       openClipboard: { label: 'Open clipboard', sub: 'Open clipboard history globally' }
     },
     apps: { cardHead: 'Per-app binding' },

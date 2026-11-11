@@ -45,7 +45,8 @@ export const Setting = ({ section }: { section: SettingSection }) => {
   const [cutStatus, setCutStatus] = useState<ShortCutStatusType>({
     accelerator: '',
     registered: false,
-    error: ''
+    error: '',
+    reserved: false
   })
   // 剪贴板快捷键：'doubleOption' 为默认的双击 Option 模式
   const [clipShortCut, setClipShortCut] = useState(config.clipboardShortCut || 'doubleOption')

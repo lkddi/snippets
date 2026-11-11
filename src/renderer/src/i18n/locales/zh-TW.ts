@@ -19,7 +19,12 @@ const zhTW = {
     },
     shortcuts: {
       title: '全域快速鍵',
-      openSearch: { label: '打開搜尋', sub: '全域喚起搜尋視窗', hintDefault: '未設定快速鍵，點按右側方框後按下組合鍵' },
+      openSearch: {
+        label: '打開搜尋',
+        sub: '全域喚起搜尋視窗',
+        hintDefault: '未設定快速鍵，點按右側方框後按下組合鍵',
+        registered: '已生效：{acc}'
+      },
       openClipboard: { label: '喚起剪貼簿', sub: '全域喚起剪貼簿歷史' }
     },
     apps: { cardHead: '按 App 綁定' },

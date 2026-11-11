@@ -19,7 +19,12 @@ const zhCN = {
     },
     shortcuts: {
       title: '全局快捷键',
-      openSearch: { label: '打开搜索', sub: '全局唤起搜索窗口', hintDefault: '未设置快捷键，点击右侧方框后按下组合键' },
+      openSearch: {
+        label: '打开搜索',
+        sub: '全局唤起搜索窗口',
+        hintDefault: '未设置快捷键，点击右侧方框后按下组合键',
+        registered: '已生效：{acc}'
+      },
       openClipboard: { label: '唤起剪贴板', sub: '全局唤起剪贴板历史' }
     },
     apps: { cardHead: '按应用绑定' },
