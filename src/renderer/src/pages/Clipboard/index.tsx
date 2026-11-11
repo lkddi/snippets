@@ -361,6 +361,12 @@ export const Clipboard = (): JSX.Element => {
                 <div className="preview-image">
                   <img src={preview.dataUrl} alt="" />
                 </div>
+                {/* 图片文件带文件名，截图/复制图像则只有尺寸信息 */}
+                {preview.name && (
+                  <div className="preview-name" title={preview.name}>
+                    {preview.name}
+                  </div>
+                )}
                 <div className="preview-meta">{formatImageMeta(`${preview.width}x${preview.height}|${preview.bytes}`)}</div>
               </>
             ) : preview.kind === 'file' ? (

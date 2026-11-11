@@ -168,7 +168,8 @@ type ClipboardItemType = {
 
 /** 面板右侧预览内容 */
 type ClipboardPreviewType =
-  | { kind: 'image'; dataUrl: string; width: number; height: number; bytes: number }
+  // name 仅「图片文件」有值（Finder 里复制的 png/jpg 等），截图/复制图像时为 undefined
+  | { kind: 'image'; dataUrl: string; width: number; height: number; bytes: number; name?: string }
   | { kind: 'file'; path: string; name: string; ext: string }
   | { kind: 'text'; text: string; truncated: boolean }
 

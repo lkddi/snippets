@@ -1,6 +1,6 @@
 import { app, clipboard, dialog, globalShortcut, ipcMain, IpcMainInvokeEvent, nativeImage, shell } from 'electron'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { config, del, findAll, findOne, insert as insertRow } from './db/query'
 import { findWindow, getByNameWindow } from './windows'
@@ -343,6 +343,32 @@ ipcMain.handle('clipboard:paste', (_event: IpcMainInvokeEvent, id: number) => {
   return true
 })
 
+/** 可直接出缩略图的图片文件扩展名：Finder 里复制的图片文件也要能预览画面 */
+const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'tif', 'tiff', 'heic', 'svg']
+
+/** 生成缩略图预览：预览不需要原图，缩到 480px 内再转 base64，避免大图撑爆 IPC */
+const buildImagePreview = (file: string, bytes: number, name?: string): ClipboardPreviewType | null => {
+  const image = nativeImage.createFromPath(file)
+  if (image.isEmpty()) return null
+  const size = image.getSize()
+  const scale = Math.min(1, 480 / Math.max(size.width, size.height))
+  const thumb =
+    scale < 1
+      ? image.resize({
+          width: Math.max(1, Math.round(size.width * scale)),
+          height: Math.max(1, Math.round(size.height * scale))
+        })
+      : image
+  return {
+    kind: 'image',
+    dataUrl: thumb.toDataURL(),
+    width: size.width,
+    height: size.height,
+    bytes,
+    ...(name ? { name } : {})
+  }
+}
+
 /** 面板右侧预览：图片返回缩略图 data URL（避免渲染层直接读磁盘），文本返回正文片段 */
 ipcMain.handle('clipboard:preview', (_event: IpcMainInvokeEvent, id: number) => {
   const row = findOne('select content, kind, path, meta from clipboard_items where id = @id', {
@@ -351,29 +377,23 @@ ipcMain.handle('clipboard:preview', (_event: IpcMainInvokeEvent, id: number) => 
   if (!row) return null
 
   if (row.kind === 'image' && row.path && existsSync(row.path)) {
-    const image = nativeImage.createFromPath(row.path)
-    if (!image.isEmpty()) {
-      const size = image.getSize()
-      // 预览不需要原图，缩到 480px 内再转 base64，避免大图撑爆 IPC
-      const scale = Math.min(1, 480 / Math.max(size.width, size.height))
-      const thumb =
-        scale < 1
-          ? image.resize({
-              width: Math.max(1, Math.round(size.width * scale)),
-              height: Math.max(1, Math.round(size.height * scale))
-            })
-          : image
-      return {
-        kind: 'image',
-        dataUrl: thumb.toDataURL(),
-        width: size.width,
-        height: size.height,
-        bytes: Number((row.meta ?? '').split('|')[1] ?? 0)
-      }
-    }
+    const preview = buildImagePreview(row.path, Number((row.meta ?? '').split('|')[1] ?? 0))
+    if (preview) return preview
   }
 
   if (row.kind === 'file' && row.path) {
+    // Finder 里 Cmd+C 复制图片文件时 kind 是 file，但用户同样期待看到画面缩略图
+    const ext = (row.meta || extname(row.path).slice(1)).toLowerCase()
+    if (IMAGE_EXTS.includes(ext) && existsSync(row.path)) {
+      let bytes = 0
+      try {
+        bytes = statSync(row.path).size
+      } catch {
+        bytes = 0
+      }
+      const preview = buildImagePreview(row.path, bytes, basename(row.path))
+      if (preview) return preview
+    }
     return { kind: 'file', path: row.path, name: basename(row.path), ext: row.meta ?? '' }
   }
 
