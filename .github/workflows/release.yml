@@ -31,6 +31,21 @@ jobs:
         with:
           version: 9
 
+      # electron-builder 在 Windows 上会 fork/exec pnpm.cjs，而 .cjs 的
+      # '#!/usr/bin/env node' shebang 不是合法 Win32 可执行格式，会报
+      # "%1 is not a valid Win32 application"。把 shebang 改成 '#!node' 即可。
+      - name: 修复 pnpm.cjs shebang（Windows）
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cjs = @("$env:USERPROFILE\setup-pnpm", "$env:RUNNER_TOOL_CACHE\pnpm") |
+            ForEach-Object { Get-ChildItem $_ -Recurse -Filter pnpm.cjs -ErrorAction SilentlyContinue } |
+            Select-Object -First 1
+          if (-not $cjs) { Write-Error 'pnpm.cjs not found in setup-pnpm or tool cache' }
+          $content = (Get-Content $cjs.FullName -Raw) -replace '^#!/usr/bin/env node', '#!node'
+          Set-Content -Path $cjs.FullName -Value $content -NoNewline
+          Write-Host "Patched: $($cjs.FullName)"
+
       - name: 安装 Node.js
         uses: actions/setup-node@v4
         with:
