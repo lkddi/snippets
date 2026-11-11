@@ -2,6 +2,8 @@ appId: com.pllx.snippets
 productName: 灵犀
 directories:
   buildResources: build
+# macOS ad-hoc 签名钩子：见 scripts/adhoc-sign.cjs 头部注释
+afterPack: scripts/adhoc-sign.cjs
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -27,7 +29,11 @@ mac:
     - target: dmg
       arch:
         - arm64
-  identity: null
+  # 不配 identity：CI 无证书时 electron-builder 自动 ad-hoc 签名。
+  # 不能配 null（完全跳过签名）：未签名的包从浏览器下载后带隔离属性，
+  # macOS 13+ 会直接报「已损坏，无法打开」；ad-hoc 签名只降级为
+  # 「无法验证开发者」，右键打开即可
+  # CSC_IDENTITY_AUTO_DISCOVERY=false 同理：跳过钥匙串搜索、直接 ad-hoc
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
