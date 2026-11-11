@@ -67,6 +67,20 @@ for (const section of SECTIONS) {
 
 if (!lines.length) lines.push('本次发布没有面向用户的改动。', '')
 
+// 固定的安装说明：应用是 ad-hoc 签名（无付费开发者证书），
+// macOS 首次打开必经 Gatekeeper 提示，写清楚两种放行方式
+lines.push(
+  '### 安装说明',
+  '',
+  '**macOS**：首次打开提示「Apple 无法验证灵犀」属正常现象（应用无付费开发者签名）。两种放行方式任选：',
+  '',
+  '- **方式一**：打开「系统设置 → 隐私与安全性」，拉到底部点「仍要打开」',
+  '- **方式二**：终端执行 `xattr -dr com.apple.quarantine /Applications/灵犀.app` 后直接打开',
+  '',
+  '**Windows**：SmartScreen 拦截时点「更多信息 → 仍要运行」。',
+  ''
+)
+
 const repo = process.env.GITHUB_REPOSITORY || 'lkddi/snippets'
 if (prev) {
   lines.push(
