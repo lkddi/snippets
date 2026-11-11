@@ -43,6 +43,23 @@ interface AppEntry {
 let appCache: AppEntry[] = []
 let scanPromise: Promise<void> | null = null
 const iconCache = new Map<string, string>()
+/** 上次扫描时各应用目录的 .app 名单指纹，用于检测安装/卸载后的缓存过期 */
+let lastFingerprint = ''
+
+/** 目录指纹：所有扫描目录下顶层 .app 名排序拼接。readdirSync 微秒级，每次搜索前比对零负担 */
+const dirFingerprint = (): string => {
+  const names: string[] = []
+  for (const dir of appDirectories()) {
+    try {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name.endsWith('.app')) names.push(entry.name)
+      }
+    } catch {
+      // 目录不存在 / 无权限，跳过即可
+    }
+  }
+  return names.sort().join('|')
+}
 
 /**
  * 生成名称的拼音检索字段：
@@ -232,10 +249,17 @@ const enrichBundleInfo = async (apps: AppEntry[]): Promise<void> => {
 
 /** 首次搜索 / 启动时扫盘 + 补中文名，结果缓存复用 */
 const ensureScanned = (): Promise<void> => {
+  // 指纹变了说明装了/卸了应用：丢弃旧缓存重扫，避免常驻进程永远看不到新应用
+  const fingerprint = dirFingerprint()
+  if (lastFingerprint && fingerprint !== lastFingerprint) {
+    scanPromise = null
+    iconCache.clear()
+  }
   if (!scanPromise) {
     scanPromise = (async () => {
       appCache = scanApps()
       await enrichBundleInfo(appCache)
+      lastFingerprint = dirFingerprint()
     })()
   }
   return scanPromise
