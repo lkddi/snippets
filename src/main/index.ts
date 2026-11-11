@@ -16,7 +16,7 @@ import { initClipboard, registerAppClipboardShortCut } from './clipboard'
 import './db'
 import { initTable } from './db/tables'
 import { setMainConfig } from './db/config'
-import { registerAppGlobShortcut } from './shortCut'
+import { registerAppGlobShortcut, getShortCutStatus } from './shortCut'
 import { registerAppShortCuts } from './appShortcuts'
 import { getByNameWindow, showAndFocus } from './windows'
 import { initAppMenu } from './menu'
@@ -24,6 +24,8 @@ import { initTray } from './tray'
 import './loginItem'
 import { applyDockIconFromConfig } from './dockIcon'
 import { captureFrontmostApp } from './pasteBack'
+import { getClipboardHookStatus } from './clipboard'
+import { diag } from './diag'
 // 文本扩展：导入即注册 expansions:reload IPC
 import { reloadExpansions } from './expander'
 
@@ -34,10 +36,12 @@ if (!app.requestSingleInstanceLock()) {
   // 必须用 exit 而不是 quit：quit 会走 before-quit / will-quit 流程，
   // 而此刻 app 还没 ready，will-quit 里的 globalShortcut.unregisterAll() 会抛
   // "globalShortcut cannot be used before the app is ready"，直接弹出崩溃框
+  diag('instance:rejected')
   app.exit(0)
 } else {
   // 第二个实例启动时，已有实例直接唤起搜索窗
   app.on('second-instance', () => {
+    diag('instance:second')
     captureFrontmostApp()
     showAndFocus('search')
   })
@@ -118,6 +122,15 @@ app.whenReady().then(() => {
   // 搜索窗只创建不显示，等快捷键或托盘唤起
   getByNameWindow('search')
   getByNameWindow('config')
+
+  // 启动自检：出问题时这几行能直接说明"快捷键到底注册上没、钩子跑起来没"
+  diag('app:ready', {
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    dockVisible: app.dock ? app.dock.isVisible() : null,
+    shortCut: getShortCutStatus(),
+    hook: getClipboardHookStatus()
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

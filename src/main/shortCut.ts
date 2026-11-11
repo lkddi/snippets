@@ -4,11 +4,16 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { stopClipboardHook } from './clipboard'
 import { config } from './db/query'
-import { getByNameWindow } from './windows'
+import { getByNameWindow, revealOverlay } from './windows'
 import { captureFrontmostApp } from './pasteBack'
+import { diag } from './diag'
 
 /** 当前应用已注册的快捷键，用于切换时先注销旧键，而不是 unregisterAll 误杀其它快捷键 */
 let registeredShortCut = ''
+
+/** 重复触发保护：同一次按键被派发两次时，第二次不能把刚显示的窗口又收起来 */
+const TOGGLE_GUARD = 200
+let lastToggleAt = 0
 
 /**
  * macOS 真正抢不走的组合：系统窗口 / 应用切换类，
@@ -240,28 +245,28 @@ const notifyUnusableShortCut = (status: ShortCutStatusType): void => {
 }
 
 const toggleSearchWindow = (): void => {
+  // 一次按键可能被重复派发（系统热键 + 全局键盘钩子都收到）：
+  // 那样会「显示 → 立刻再切一次 → 隐藏」，用户看到的就是窗口闪一下。
+  // 200ms 内的第二次切换一律忽略。
+  const now = Date.now()
+  if (now - lastToggleAt < TOGGLE_GUARD) return
+  lastToggleAt = now
+
   const win = getByNameWindow('search')
   if (win.isDestroyed()) return
-  // 已显示但没拿到焦点（比如被别的窗口压住）：聚焦而不是收起，否则用户会觉得"按了没反应"
-  if (win.isVisible()) {
-    if (win.isFocused()) {
-      win.hide()
-      return
-    }
-    if (process.platform === 'darwin') app.focus({ steal: true })
-    win.focus()
-    win.webContents.focus()
+  diag('hotkey:search', { visible: win.isVisible(), focused: win.isFocused() })
+
+  // 只有「已显示且已聚焦」才算收起；其余情况都当成唤起。
+  // 之前只要 isVisible() 为真就只 focus()，窗口若滞留在别的桌面 / 全屏应用后面，
+  // 后面按多少次都只会 focus() 而不会真正显示出来 —— 表现为"快捷键叫不出搜索框"
+  if (win.isVisible() && win.isFocused()) {
+    win.hide()
+    diag('hotkey:search:hide')
     return
   }
-  // macOS 隐藏程序坞图标后应用是 accessory 模式，必须显式激活才能让窗口真正浮到最前
   // 唤起前先记录最前台应用，选中片段回车时才能把内容粘回原来的光标处
   captureFrontmostApp()
-  if (process.platform === 'darwin') app.focus({ steal: true })
-  win.show()
-  win.focus()
-  // win.focus() 只保证原生窗口成为焦点窗口，webContents 层可能还停在失焦状态，
-  // 表现为窗口弹出来了但输入框里没有光标；渲染层另有 hook 把光标放回输入框
-  win.webContents.focus()
+  revealOverlay('search')
 }
 
 export const registerSearchShortCut = (shortCut: string, notify = false): boolean => {

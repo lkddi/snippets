@@ -3,8 +3,9 @@ import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { config, del, findAll, findOne, insert as insertRow } from './db/query'
-import { findWindow, getByNameWindow } from './windows'
+import { findWindow, getByNameWindow, revealOverlay } from './windows'
 import { captureFrontmostApp, pasteBackToFrontApp } from './pasteBack'
+import { diag } from './diag'
 
 /** 剪贴板轮询间隔（毫秒） */
 const POLL_INTERVAL = 1000
@@ -14,6 +15,9 @@ const CLIPBOARD_LIMIT = 200
 const DOUBLE_PRESS_INTERVAL = 450
 /** 忽略 150ms 内的重复 keydown（按键自动重复） */
 const REPEAT_IGNORE_INTERVAL = 150
+/** 重复触发保护：同一次双击被派发两次时，第二次不能把刚显示的面板又收起来 */
+const TOGGLE_GUARD = 250
+let lastToggleAt = 0
 
 /** 剪贴板专用的已注册快捷键，与 search 的 registeredShortCut 各自独立维护，避免互相 unregister */
 let registeredClipShortCut = ''
@@ -25,7 +29,15 @@ export const getClipboardShortCut = (): string => registeredClipShortCut
 let hookInstance: { stop: () => void } | null = null
 /** 钩子是否已启动：文本扩展模块共用同一个原生钩子，必须只有一处 start/stop */
 let hookStarted = false
-/** 最近一次收到全局按键的时间：用于判断「输入监控」权限是否给了（收不到事件即权限问题） */
+/**
+ * 正在启动中。必须单独一个标志：
+ * 启动要 await 动态 import，而 initClipboard() 与 reloadExpansions() 几乎同时调用，
+ * 只靠 hookStarted 会在 import 完成前双双通过检查，结果 start() 两次、
+ * keydown 监听器挂两份 —— 双击 Option 触发两次 toggle，
+ * 面板"闪一下就消失"。这个标志把并发调用挡在门外。
+ */
+let hookStarting = false
+/** 收不到事件时的诊断用：钩子已启动但从未收到按键（通常是「输入监控」权限没给） */
 let lastKeyEventAt = 0
 
 /** 去重键：文本用内容，图片/文件用 hash/路径，避免同样的图片被重复入库 */
@@ -97,16 +109,26 @@ const captureClipboard = (): CapturedType | null => {
 }
 
 const toggleClipboardWindow = (): void => {
+  // 一次双击 Option 可能被派发两次（钩子被重复启动 / 事件重复）：
+  // 那样会「显示 → 立刻再切一次 → 隐藏」，用户看到的就是面板闪一下不见。
+  const now = Date.now()
+  if (now - lastToggleAt < TOGGLE_GUARD) return
+  lastToggleAt = now
+
   const win = getByNameWindow('clipboard')
   if (win.isDestroyed()) return
-  if (win.isVisible()) {
+  diag('hotkey:clipboard', { visible: win.isVisible(), focused: win.isFocused() })
+
+  // 已显示且已聚焦才算收起，其余情况一律当唤起 —— 面板一旦"显示着但没焦点"
+  // （hideOnBlur 之后窗口没了焦点却还挂在别的桌面），旧的写法就会一直 hide 再也打不开
+  if (win.isVisible() && win.isFocused()) {
     win.hide()
-  } else {
-    // 必须在面板拿焦点之前记录最前台应用，回车粘贴时才能把内容送回原来的光标处
-    captureFrontmostApp()
-    win.show()
-    win.focus()
+    diag('hotkey:clipboard:hide')
+    return
   }
+  // 必须在面板拿焦点之前记录最前台应用，回车粘贴时才能把内容送回原来的光标处
+  captureFrontmostApp()
+  revealOverlay('clipboard')
 }
 
 /** 轮询剪贴板：内容非空且与最新一条不同才入库，超出上限删最旧，然后通知窗口刷新 */
@@ -153,7 +175,9 @@ const pollClipboard = (): void => {
  * 表现就是「剪贴板快捷键突然失效」，且重新加规则也不会恢复。
  */
 const startDoubleOptionHook = async (): Promise<void> => {
-  if (hookStarted) return
+  if (hookStarted || hookStarting) return
+  // 必须在 await 之前占位，否则并发调用会各自通过检查，最后 start() 两次
+  hookStarting = true
   try {
     const { uIOhook, UiohookKey } = await import('uiohook-napi')
     let firstAltDownAt = 0
@@ -206,14 +230,19 @@ const startDoubleOptionHook = async (): Promise<void> => {
     // 便于排查：start 成功只代表钩子线程起来了，macOS 未授予"输入监控"权限时
     // 事件会被系统静默丢弃（不报错、收不到 keydown），这是双击 Option 无反应的头号原因
     console.log('[clipboard] uiohook 键盘监听已启动（若无反应请检查 输入监控 权限）')
+    diag('hook:started')
   } catch (error) {
     console.error('加载 uiohook 失败，双击 Option 唤起不可用，可在设置中改用快捷键模式', error)
+    diag('hook:fail', String(error))
+  } finally {
+    // 无论成败都放开占位，失败时下次 reloadExpansions 还能重试
+    hookStarting = false
   }
 }
 
 /** 供其它模块（文本扩展）复用的启动入口：幂等，重复调用不会二次 start */
 export const ensureClipboardHookStarted = async (): Promise<boolean> => {
-  if (!hookStarted) await startDoubleOptionHook()
+  if (!hookStarted && !hookStarting) await startDoubleOptionHook()
   return hookStarted
 }
 

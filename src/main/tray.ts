@@ -1,6 +1,6 @@
 import { app, Menu, MenuItemConstructorOptions, nativeImage, Tray } from 'electron'
 import icon from '../../resources/icon.png?asset'
-import { getByNameWindow, showAndFocus } from './windows'
+import { getByNameWindow, revealOverlay, showAndFocus } from './windows'
 import { isLaunchAtLogin, setLaunchAtLogin } from './loginItem'
 import { captureFrontmostApp } from './pasteBack'
 import { getShortCutStatus } from './shortCut'
@@ -10,13 +10,14 @@ let tray: Tray | null = null
 const toggleSearch = (): void => {
   const win = getByNameWindow('search')
   if (win.isDestroyed()) return
-  if (win.isVisible()) {
+  // 只有已显示且已聚焦才算收起；否则一律唤起（窗口可能"显示着"却停在别的桌面）
+  if (win.isVisible() && win.isFocused()) {
     win.hide()
-  } else {
-    // 唤起前记录最前台应用，片段粘贴时才能回到原光标处
-    captureFrontmostApp()
-    showAndFocus('search')
+    return
   }
+  // 唤起前记录最前台应用，片段粘贴时才能回到原光标处
+  captureFrontmostApp()
+  revealOverlay('search')
 }
 
 /** 打开设置窗并定位到指定分区（代码片段也收在设置里了） */
@@ -57,6 +58,15 @@ const buildTrayMenu = (): MenuItemConstructorOptions[] => {
       click: (item) => setLaunchAtLogin(item.checked)
     },
     { type: 'separator' },
+    {
+      // 装新版覆盖安装后，旧进程还在跑、资源已被替换，窗口可能再也画不出来；
+      // 给一个一键自愈入口，省得用户去活动监视器里找进程
+      label: '重启灵犀',
+      click: () => {
+        app.relaunch()
+        app.exit(0)
+      }
+    },
     { label: '退出灵犀', click: () => app.quit() }
   ]
 }

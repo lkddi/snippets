@@ -1,5 +1,6 @@
 import { app, BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from 'electron'
 import { createWindow, OptionsType } from './createWindow'
+import { diag } from './diag'
 
 interface WindowConfig {
   id: number
@@ -94,6 +95,40 @@ export const findWindow = (name: WindowNameType): BrowserWindow | null => {
 }
 
 /**
+ * 把浮层窗口（搜索窗 / 剪贴板面板）带到用户眼前。
+ *
+ * 只调 focus() 是不够的：窗口可能"已显示"却停在别的桌面 / 全屏应用后面，
+ * 此时 isVisible() 仍是 true，focus() 也不会把它搬过来，用户看到的就是
+ * 「按了快捷键窗口不出现」，而且再按多少次都一样（一直走进 isVisible 分支）。
+ * 所以这里统一走 show()：对已显示的窗口，它等同于 raise 并切到当前 Space。
+ */
+export const revealOverlay = (name: WindowNameType): BrowserWindow => {
+  const win = getByNameWindow(name)
+  if (win.isDestroyed()) return win
+
+  const before = { visible: win.isVisible(), focused: win.isFocused() }
+  if (process.platform === 'darwin') {
+    // accessory（隐藏程序坞）模式下必须先激活应用，窗口才会浮到最前并拿到键盘焦点
+    app.focus({ steal: true })
+    if (before.visible && !before.focused) {
+      // 重新声明一次"所有桌面可见"，把滞留在别的 Space 的窗口迁回当前桌面
+      win.setVisibleOnAllWorkspaces(false)
+      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+    }
+  }
+  win.show()
+  win.focus()
+  win.webContents.focus()
+
+  diag('overlay:show', {
+    name,
+    before,
+    after: { visible: win.isVisible(), focused: win.isFocused() }
+  })
+  return win
+}
+
+/**
  * 显示并聚焦窗口。
  * 搜索窗 / 剪贴板面板是 alwaysOnTop 的浮层，打开设置、片段管理等普通窗口前
  * 必须先收起它们，否则普通窗口会被压在浮层下面（Cmd+, 打开设置时尤其明显）。
@@ -109,14 +144,7 @@ export const showAndFocus = (name: WindowNameType): BrowserWindow => {
     }
   }
 
-  // 隐藏程序坞图标时应用处于 accessory 模式，从托盘菜单唤起设置这类普通窗口
-  // 只靠 show() 可能停在其它窗口后面，先激活应用再显示
-  if (process.platform === 'darwin') app.focus({ steal: true })
-  win.show()
-  win.focus()
-  // webContents 层补一次聚焦，保证页面里的输入控件能立刻接收键盘输入
-  win.webContents.focus()
-  return win
+  return revealOverlay(name)
 }
 
 export const getWindowByEvent = (
