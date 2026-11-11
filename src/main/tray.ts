@@ -34,7 +34,8 @@ const buildTrayMenu = (): MenuItemConstructorOptions[] => {
   const broken = Boolean(cutStatus.accelerator) && !cutStatus.registered
 
   return [
-    { label: '打开搜索窗', click: () => showAndFocus('search') },
+    // 浮层类窗口回车粘贴时要回到唤起前的应用，必须在 show 之前记录最前台应用
+    { label: '打开搜索窗', click: () => { captureFrontmostApp(); showAndFocus('search') } },
     { label: '设置…', click: () => openSettings('#/config/general') },
     ...(broken
       ? [
@@ -46,7 +47,7 @@ const buildTrayMenu = (): MenuItemConstructorOptions[] => {
         ]
       : []),
     { type: 'separator' },
-    { label: '剪贴板历史', click: () => showAndFocus('clipboard') },
+    { label: '剪贴板历史', click: () => { captureFrontmostApp(); showAndFocus('clipboard') } },
     { label: '代码片段', click: () => openSettings('#/config/category/contentList') },
     { type: 'separator' },
     {
