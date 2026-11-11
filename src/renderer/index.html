@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <title>灵犀</title>
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <!-- 预览要直接加载本地文件（PDF / 视频 / 音频），所以额外放开 file: 源 -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; media-src 'self' file:; frame-src 'self' file:; object-src 'self' file:"
     />
   </head>
 

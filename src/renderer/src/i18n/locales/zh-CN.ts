@@ -178,7 +178,10 @@ const zhCN = {
       snippet: '片段',
       app: '应用',
       truncated: '内容较长，仅显示前 20 KB',
-      hint: '空格 / Esc 关闭预览'
+      hint: '空格 / Esc 关闭预览',
+      close: '关闭预览',
+      quicklook: '⌘Y 系统预览',
+      loading: '正在生成预览…'
     }
   }
 }

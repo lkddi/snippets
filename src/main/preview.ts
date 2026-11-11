@@ -1,7 +1,66 @@
 import { ipcMain, IpcMainInvokeEvent, nativeImage } from 'electron'
-import { closeSync, existsSync, openSync, readSync, readdirSync, statSync } from 'node:fs'
-import { basename, extname } from 'node:path'
+import { spawn, type ChildProcess } from 'node:child_process'
+import {
+  closeSync,
+  existsSync,
+  mkdtempSync,
+  openSync,
+  readSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  Stats
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, extname, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { findOne } from './db/query'
+
+/** PDF 走 Chromium 内置阅读器，比缩略图强得多 */
+const PDF_EXTS = ['pdf']
+
+/** 视频 / 音频直接内嵌播放，等同系统"快速查看"的体验 */
+const VIDEO_EXTS = ['mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi', 'flv', 'wmv', 'mpg', 'mpeg']
+const AUDIO_EXTS = ['mp3', 'wav', 'aac', 'flac', 'm4a', 'aiff', 'ogg', 'opus', 'wma']
+
+/**
+ * 交给系统 Quick Look 出首页缩略图的类型：
+ * Office / iWork / 字体 / 电子书这类 Chromium 自己不认识的文档。
+ * 只收文档类，dmg / iso 这种大镜像出图慢且没信息量。
+ */
+const QL_EXTS = [
+  'doc',
+  'docx',
+  'docm',
+  'xls',
+  'xlsx',
+  'xlsm',
+  'ppt',
+  'pptx',
+  'pptm',
+  'pages',
+  'numbers',
+  'key',
+  'rtf',
+  'rtfd',
+  'odt',
+  'ods',
+  'odp',
+  'epub',
+  'ttf',
+  'otf',
+  'ttc',
+  'sketch',
+  'ai',
+  'psd'
+]
+
+/** 超大文件系统出图很慢，超过这个体积就只显示文件信息 */
+const QL_MAX_BYTES = 80 * 1024 * 1024
+/** qlmanage 冷启动 + 生成缩略图，超时就放弃，避免预览卡住 */
+const QL_TIMEOUT = 5000
+/** qlmanage 失败按路径缓存一次，避免同目录反复起进程 */
+const thumbCache = new Map<string, string | null>()
 
 /** 能直接出缩略图的图片扩展名 */
 const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'tif', 'tiff', 'heic', 'svg']
@@ -73,11 +132,84 @@ const readHead = (path: string, limit: number): Buffer => {
   }
 }
 
-const previewFile = (path: string): SearchPreviewType | null => {
+/**
+ * 调系统 Quick Look（qlmanage）把文件渲染成首页缩略图。
+ * qlmanage 是 Finder 快速预览的同一套生成器，Office / Pages / 字体都能出图；
+ * Windows 上没有这个命令，直接返回 null 由调用方降级成文件信息。
+ */
+const quickLookThumb = (path: string, stat: Stats): Promise<string | null> => {
+  if (process.platform !== 'darwin') return Promise.resolve(null)
+  const key = `${path}|${stat.mtimeMs}|${stat.size}`
+  if (thumbCache.has(key)) return Promise.resolve(thumbCache.get(key) ?? null)
+
+  return new Promise((resolve) => {
+    let dir = ''
+    try {
+      dir = mkdtempSync(join(tmpdir(), 'lingxi-ql-'))
+    } catch {
+      return resolve(null)
+    }
+
+    let settled = false
+    const finish = (value: string | null): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      try {
+        rmSync(dir, { recursive: true, force: true })
+      } catch {
+        // 清理失败不影响结果
+      }
+      // 只缓存成功与"生成不出图"两类，超时的不缓存以便下次重试
+      if (value) {
+        thumbCache.set(key, value)
+        if (thumbCache.size > 40) {
+          const oldest = thumbCache.keys().next().value
+          if (oldest) thumbCache.delete(oldest)
+        }
+      }
+      resolve(value)
+    }
+
+    const child = spawn('/usr/bin/qlmanage', ['-t', '-s', '1200', '-o', dir, path], {
+      stdio: 'ignore'
+    })
+    const timer = setTimeout(() => {
+      child.kill()
+      finish(null)
+    }, QL_TIMEOUT)
+
+    child.on('error', () => finish(null))
+    child.on('close', () => {
+      try {
+        const file = readdirSync(dir).find((name) => /\.(png|jpe?g|tiff?)$/i.test(name))
+        if (!file) return finish(null)
+        const image = nativeImage.createFromPath(join(dir, file))
+        if (image.isEmpty()) return finish(null)
+        const size = image.getSize()
+        const scale = Math.min(1, IMAGE_MAX / Math.max(size.width, size.height))
+        const thumb =
+          scale < 1
+            ? image.resize({
+                width: Math.max(1, Math.round(size.width * scale)),
+                height: Math.max(1, Math.round(size.height * scale))
+              })
+            : image
+        finish(thumb.toDataURL())
+      } catch {
+        finish(null)
+      }
+    })
+  })
+}
+
+const previewFile = async (path: string): Promise<SearchPreviewType | null> => {
   if (!existsSync(path)) return null
   const name = basename(path)
   const stat = statSync(path)
   const ext = extname(path).slice(1).toLowerCase()
+  // 派生自 file:// 页面，可以直接被 iframe / video 加载（路径里的中文空格都已转义）
+  const fileUrl = pathToFileURL(path).href
 
   if (stat.isDirectory()) {
     // .app 走应用分支，这里只剩真正的文件夹
@@ -123,6 +255,21 @@ const previewFile = (path: string): SearchPreviewType | null => {
     }
   }
 
+  if (PDF_EXTS.includes(ext)) {
+    return { kind: 'pdf', name, path, url: fileUrl, bytes: stat.size }
+  }
+
+  if (VIDEO_EXTS.includes(ext) || AUDIO_EXTS.includes(ext)) {
+    return {
+      kind: 'media',
+      name,
+      path,
+      url: fileUrl,
+      media: VIDEO_EXTS.includes(ext) ? 'video' : 'audio',
+      bytes: stat.size
+    }
+  }
+
   if (TEXT_EXTS.includes(ext) || stat.size <= 64 * 1024) {
     try {
       const head = readHead(path, TEXT_LIMIT)
@@ -141,6 +288,12 @@ const previewFile = (path: string): SearchPreviewType | null => {
     }
   }
 
+  // 剩下的是 Chromium 不认识的文档格式，借系统 Quick Look 出首页图（Word / Pages / 字体…）
+  if (QL_EXTS.includes(ext) && stat.size <= QL_MAX_BYTES) {
+    const dataUrl = await quickLookThumb(path, stat)
+    if (dataUrl) return { kind: 'thumb', name, path, dataUrl, bytes: stat.size, ext }
+  }
+
   return {
     kind: 'info',
     name,
@@ -155,12 +308,37 @@ const previewFile = (path: string): SearchPreviewType | null => {
 
 /**
  * 搜索窗空格预览。
- * 文件按类型分三路：图片出缩略图、文本/代码出正文、其余出大小与修改时间；
+ * 优先级：图片/PDF/音视频用 Chromium 自己渲染（可交互），
+ * Office 等文档调系统 Quick Look 出首页图，其余落到文件信息卡；
  * 片段取正文，应用只展示路径（macOS 侧拿不到稳定的大图标）。
  */
+/**
+ * 用系统 Quick Look 面板（Finder 里空格弹出的那个）打开文件。
+ * 它属于 AppKit 的独立浮动面板，只能由系统进程渲染，嵌不进我们的窗口，
+ * 所以做成"⌘Y 交给系统看"的补充入口，而不是内嵌预览。
+ */
+let quickLookChild: ChildProcess | null = null
+
+ipcMain.handle('preview:quicklook', (_event: IpcMainInvokeEvent, path: string): boolean => {
+  if (process.platform !== 'darwin' || !path || !existsSync(path)) return false
+  try {
+    quickLookChild?.kill()
+  } catch {
+    // 上一个预览窗口已经自己关掉了
+  }
+  try {
+    quickLookChild = spawn('/usr/bin/qlmanage', ['-p', path], { stdio: 'ignore', detached: true })
+    quickLookChild.unref()
+    return true
+  } catch (error) {
+    console.error('打开系统预览失败', error)
+    return false
+  }
+})
+
 ipcMain.handle(
   'preview:item',
-  (_event: IpcMainInvokeEvent, target: SearchPreviewTarget): SearchPreviewType | null => {
+  async (_event: IpcMainInvokeEvent, target: SearchPreviewTarget): Promise<SearchPreviewType | null> => {
     try {
       if (!target) return null
       if (target.kind === 'app') {

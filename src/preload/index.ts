@@ -130,6 +130,10 @@ const api = {
   previewItem: (target: SearchPreviewTarget) => {
     return ipcRenderer.invoke('preview:item', target) as Promise<SearchPreviewType | null>
   },
+  /** 用系统 Quick Look 面板（Finder 空格那个）打开文件 */
+  openQuickLook: (path: string) => {
+    return ipcRenderer.invoke('preview:quicklook', path) as Promise<boolean>
+  },
   // 说明页：当前版本 / GitHub 最新版 / 打开外部链接
   getAboutInfo: () => {
     return ipcRenderer.invoke('about:info') as Promise<AboutInfoType>

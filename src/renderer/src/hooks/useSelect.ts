@@ -115,7 +115,16 @@ export default () => {
       const target = buildTarget(index)
       if (!target) return
       const seq = ++previewSeq.current
+      // 系统 Quick Look 出图要几百毫秒，先占位，避免按空格后长时间没有反应
+      const slowTimer = setTimeout(() => {
+        if (seq === previewSeq.current) {
+          const name =
+            target.kind === 'app' ? target.name : target.kind === 'file' ? (target.path.split('/').pop() ?? '') : ''
+          setPreview({ kind: 'loading', name })
+        }
+      }, 220)
       const result = await window.api.previewItem(target)
+      clearTimeout(slowTimer)
       if (seq !== previewSeq.current) return
       setPreview(result)
     },
@@ -197,6 +206,15 @@ export default () => {
           e.preventDefault()
           if (closePreview()) break
           void loadPreview(safeIndex)
+          break
+        }
+        case 'KeyY': {
+          // ⌘Y 交给系统 Quick Look 面板，想看完整排版时用它
+          if (!(e.metaKey || e.ctrlKey)) break
+          const current = previewRef.current
+          if (!current || !('path' in current)) break
+          e.preventDefault()
+          void window.api.openQuickLook(current.path)
           break
         }
         case 'Escape': {

@@ -70,6 +70,8 @@ declare global {
       pasteSnippet: (content: string) => Promise<boolean>
       /** 搜索窗空格预览：返回图片缩略图 / 文本正文 / 文件信息 / 片段正文 */
       previewItem: (target: SearchPreviewTarget) => Promise<SearchPreviewType | null>
+      /** 用系统 Quick Look 面板打开该文件（macOS，独立浮动窗口） */
+      openQuickLook: (path: string) => Promise<boolean>
       /** 说明页信息：当前版本 / GitHub 最新版本与下载地址 / 作者信息 */
       getAboutInfo: () => Promise<AboutInfoType>
       /** 用系统默认浏览器打开 http/https 链接 */

@@ -181,7 +181,10 @@ const zhTW = {
       snippet: '片段',
       app: '應用程式',
       truncated: '內容較長，僅顯示前 20 KB',
-      hint: '空白鍵 / Esc 關閉預覽'
+      hint: '空白鍵 / Esc 關閉預覽',
+      close: '關閉預覽',
+      quicklook: '⌘Y 系統預覽',
+      loading: '正在產生預覽…'
     }
   }
 }

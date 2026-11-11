@@ -34,6 +34,8 @@ export function createWindow(options: OptionsType): BrowserWindow {
         ...(process.platform === 'linux' ? { icon } : {}),
         webPreferences: {
           preload: join(__dirname, '../preload/index.js'),
+          // Chromium 内置 PDF 阅读器属于插件，空格预览 PDF 需要打开
+          plugins: true,
           sandbox: false
         }
       },

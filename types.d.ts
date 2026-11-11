@@ -194,6 +194,14 @@ type SearchPreviewType =
       bytes: number
     }
   | { kind: 'text'; name: string; path: string; text: string; truncated: boolean; bytes: number }
+  /** PDF：直接交给 Chromium 内置阅读器，可翻页缩放 */
+  | { kind: 'pdf'; name: string; path: string; url: string; bytes: number }
+  /** 音视频：HTML5 播放器，点开就能听/看 */
+  | { kind: 'media'; name: string; path: string; url: string; media: 'video' | 'audio'; bytes: number }
+  /** 系统 Quick Look（qlmanage）生成的首页缩略图，Office / iWork / 字体等 */
+  | { kind: 'thumb'; name: string; path: string; dataUrl: string; bytes: number; ext: string }
+  /** 系统 Quick Look 生成缩略图较慢，先占位避免"按了没反应" */
+  | { kind: 'loading'; name: string }
   | {
       kind: 'info'
       name: string
