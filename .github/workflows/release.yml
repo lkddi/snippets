@@ -1,0 +1,79 @@
+name: Build & Release
+
+# 推送 v* 标签 → 构建 mac + win → 全部成功后自动发布 GitHub Release
+# 也可在 Actions 页面手动触发（workflow_dispatch 只构建不发版，用于验证）
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest # Apple Silicon，产物 lingxi-x.y.z-arm64.dmg
+            platform: --mac
+          - os: windows-latest # 产物 lingxi-x.y.z-setup.exe（NSIS x64）
+            platform: --win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 类型检查
+        run: pnpm run typecheck
+
+      - name: 构建渲染层
+        run: pnpm exec electron-vite build
+
+      - name: 打包应用
+        run: pnpm exec electron-builder ${{ matrix.platform }} --publish never
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.blockmap
+          if-no-files-found: error
+
+  release:
+    # 仅标签触发时发布；手动触发只验证构建
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载全部构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: 发布 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          draft: false
+          generate_release_notes: true

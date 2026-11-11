@@ -16,7 +16,7 @@ asarUnpack:
 win:
   executableName: snippets
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: lingxi-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -36,7 +36,7 @@ mac:
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Documents folder.
   notarize: false
 dmg:
-  artifactName: 灵犀-${version}-arm64.${ext}
+  artifactName: lingxi-${version}-arm64.${ext}
   contents:
     - x: 130
       y: 220
