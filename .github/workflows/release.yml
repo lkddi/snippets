@@ -24,10 +24,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 9
 
@@ -47,7 +47,7 @@ jobs:
           Write-Host "Patched: $($cjs.FullName)"
 
       - name: 安装 Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: pnpm
@@ -65,7 +65,7 @@ jobs:
         run: pnpm exec electron-builder ${{ matrix.platform }} --publish never
 
       - name: 上传构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist-${{ matrix.os }}
           path: |
@@ -83,12 +83,12 @@ jobs:
       # 生成更新说明要读「上一个 tag → 本次 tag」的提交历史，
       # 必须 fetch-depth: 0 且带标签，否则 describe 找不到上一个版本
       - name: 检出代码（含完整标签历史）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: 下载全部构建产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: true
@@ -99,7 +99,7 @@ jobs:
         run: node scripts/release-notes.mjs "${{ github.ref_name }}" release-notes.md && cat release-notes.md
 
       - name: 发布 GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: artifacts/*
           draft: false
