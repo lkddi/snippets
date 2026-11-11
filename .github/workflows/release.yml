@@ -80,15 +80,28 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
+      # 生成更新说明要读「上一个 tag → 本次 tag」的提交历史，
+      # 必须 fetch-depth: 0 且带标签，否则 describe 找不到上一个版本
+      - name: 检出代码（含完整标签历史）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: 下载全部构建产物
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
 
+      # GitHub 自带 generate_release_notes 只认 PR，本项目直接推 main，
+      # 生成出来几乎是空的 —— 改由脚本按 Conventional Commits 分组生成
+      - name: 生成更新说明
+        run: node scripts/release-notes.mjs "${{ github.ref_name }}" release-notes.md && cat release-notes.md
+
       - name: 发布 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
           draft: false
-          generate_release_notes: true
+          # body_path 与 generate_release_notes 互斥，只能二选一
+          body_path: release-notes.md
