@@ -73,6 +73,19 @@ export const Setting = ({ section }: { section: SettingSection }) => {
   })
   // 剪贴板快捷键：'doubleOption' 为默认的双击 Option 模式
   const [clipShortCut, setClipShortCut] = useState(config.clipboardShortCut || 'doubleOption')
+  // 双击 Option 依赖全局键盘钩子：状态随设置页打开轮询，便于提示「输入监控」权限缺失
+  const [hookStatus, setHookStatus] = useState<{
+    running: boolean
+    lastEventAt: number
+  } | null>(null)
+  useEffect(() => {
+    const check = (): void => {
+      void window.api.clipboardHookStatus().then(setHookStatus)
+    }
+    check()
+    const timer = setInterval(check, 3000)
+    return () => clearInterval(timer)
+  }, [])
   // 剪贴板保存天数，0 = 永久保留
   const [retentionDays, setRetentionDays] = useState(
     String(config.clipboardRetentionDays ?? 7)
@@ -725,6 +738,31 @@ const parseFileExts = (raw: string): string[] =>
                 </button>
               </div>
             </div>
+
+            {/* 双击 Option 依赖全局键盘钩子 + 输入监控权限：给出实时状态与一键授权入口 */}
+            {clipShortCut === 'doubleOption' && (
+              <div className="setting-row">
+                <div className="row-label">
+                  <span className="label-main">{t('setting.clipboard.hook.label')}</span>
+                  <span className="label-sub">
+                    {hookStatus?.running
+                      ? hookStatus.lastEventAt > 0
+                        ? t('setting.clipboard.hook.subOk')
+                        : t('setting.clipboard.hook.subNoEvent')
+                      : t('setting.clipboard.hook.subNotRunning')}
+                  </span>
+                </div>
+                <div className="row-control">
+                  <button
+                    type="button"
+                    className="mini-btn"
+                    onClick={() => void window.api.openClipboardPermission()}
+                  >
+                    {t('setting.clipboard.hook.action')}
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
         )}
 

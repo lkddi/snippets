@@ -58,6 +58,12 @@ declare global {
       clipboardClear: () => Promise<number>
       /** 复制指定记录到剪贴板并尝试自动粘贴（osascript），然后隐藏窗口 */
       clipboardPaste: (id: number) => Promise<boolean>
+      /** 面板右侧预览：图片返回缩略图 data URL，文本返回正文片段，文件返回路径信息 */
+      clipboardPreview: (id: number) => Promise<ClipboardPreviewType | null>
+      /** 钩子诊断：running 为键盘监听是否启动，lastEventAt 为最近收到按键的时间戳 */
+      clipboardHookStatus: () => Promise<{ running: boolean; lastEventAt: number; shortCut: string }>
+      /** 打开 macOS「输入监控」授权面板（双击 Option 需要该权限） */
+      openClipboardPermission: () => Promise<boolean>
       /** 保存剪贴板快捷键（'doubleOption' 表示双击 Option 模式，直接视为成功） */
       clipboardShortCut: (shortCut: string) => Promise<boolean>
       /** 搜索窗选中片段回车：写回剪贴板并模拟 Cmd+V 粘回唤起前的光标处，然后收起搜索窗 */

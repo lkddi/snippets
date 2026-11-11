@@ -11,8 +11,17 @@
   overflow: hidden;
   backdrop-filter: blur(20px);
 
+  .clipboard-head {
+    @apply pb-2 border-b border-slate-200 shrink-0;
+  }
+
+  // 左列表 + 右预览
+  .clipboard-body {
+    @apply flex flex-1 min-h-0 gap-2 pt-1;
+  }
+
   .clipboard-list {
-    @apply flex-1 overflow-y-auto pt-1 min-h-0;
+    @apply flex-1 overflow-y-auto min-h-0 min-w-0;
 
     .item {
       @apply flex items-center gap-2 px-2.5 py-1.5 rounded-[10px] cursor-pointer text-slate-700;
@@ -22,14 +31,31 @@
       &.active {
         // 系统蓝，与搜索结果选中态一致
         @apply bg-[#0a84ff] text-white;
+
+        // 高亮行上的类型信息与数字角标提高对比度，避免看不清
+        .item-type,
+        .item-key {
+          @apply opacity-90;
+        }
       }
 
-      .preview {
-        @apply flex-1 min-w-0 text-sm whitespace-pre-wrap break-all line-clamp-2;
+      .kind-icon {
+        @apply shrink-0 flex items-center justify-center w-4;
       }
 
-      .time {
-        @apply text-[10px] opacity-70 shrink-0;
+      .item-title {
+        @apply flex-1 min-w-0 text-sm truncate;
+      }
+
+      .item-type {
+        @apply shrink-0 text-[10px] opacity-60;
+      }
+
+      // Alfred 风格的数字快捷键角标
+      .item-key {
+        @apply shrink-0 text-[10px] opacity-40 tabular-nums;
+        min-width: 22px;
+        text-align: right;
       }
 
       // 删除按钮 hover 行时才显示，避免视觉噪音
@@ -47,15 +73,77 @@
     }
   }
 
+  // 右侧预览面板：图片 / 文本 / 文件三类
+  .clipboard-preview {
+    @apply flex flex-col shrink-0 rounded-[10px] p-2 overflow-hidden;
+    width: 208px;
+    background: rgb(255 255 255 / 70%);
+    border: 1px solid rgb(15 23 42 / 6%);
+
+    .preview-empty {
+      @apply flex-1 flex items-center justify-center text-center text-[11px] text-slate-400 px-3 select-none;
+    }
+
+    .preview-image {
+      @apply flex-1 flex items-center justify-center min-h-0 overflow-hidden rounded-[8px];
+      padding: 8px;
+      background: #fff;
+      border: 1px solid rgb(15 23 42 / 6%);
+
+      img {
+        @apply max-w-full max-h-full object-contain;
+        box-shadow: 0 1px 6px rgb(15 23 42 / 14%);
+      }
+    }
+
+    .preview-meta {
+      @apply text-[10px] text-slate-500 text-center pt-1.5 shrink-0;
+    }
+
+    .preview-file {
+      @apply flex-1 min-h-0 flex flex-col items-center justify-center gap-1.5 px-2 text-center;
+
+      .preview-file-name {
+        @apply text-xs text-slate-700 break-all;
+      }
+
+      .preview-file-path {
+        @apply text-[10px] text-slate-400 break-all;
+      }
+    }
+
+    .preview-text {
+      @apply flex-1 min-h-0 overflow-y-auto text-[11px] leading-relaxed text-slate-600 whitespace-pre-wrap break-all m-0;
+    }
+
+    .preview-note {
+      @apply text-[10px] text-amber-500 pt-1 shrink-0;
+    }
+
+    .preview-time {
+      @apply text-[10px] text-slate-400 text-center pt-1.5 shrink-0 border-t border-slate-100 mt-1;
+    }
+  }
+
   footer {
-    @apply pt-2 mt-1 border-t border-slate-200 flex items-center justify-between;
+    @apply pt-2 mt-1 border-t border-slate-200 flex items-center justify-between shrink-0;
   }
 }
 
-.clipboard-hint {
-  @apply flex items-center gap-1 text-[11px] text-slate-400 select-none;
+// 类型筛选 chip
+.clipboard-filters {
+  @apply flex items-center gap-1;
 
-  kbd {
-    @apply inline-flex items-center justify-center min-w-4 h-4 px-1 border border-slate-200 border-b-2 rounded bg-white text-[10px] text-slate-500 font-normal;
+  .filter-chip {
+    @apply px-2 h-[22px] rounded-full text-[11px] text-slate-500 bg-slate-100 transition-colors select-none;
+
+    &:hover {
+      @apply bg-slate-200;
+    }
+
+    &.active {
+      @apply text-white;
+      background: #0a84ff;
+    }
   }
 }

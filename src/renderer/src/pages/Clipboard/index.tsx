@@ -1,4 +1,4 @@
-import { Delete } from '@icon-park/react'
+import { Delete, FilePdf, FileText, FileZip, Link, Pic } from '@icon-park/react'
 import { Input, InputRef } from 'antd'
 import classNames from 'classnames'
 import dayjs from 'dayjs'
@@ -13,14 +13,21 @@ import './clipboard.scss'
 // 相对时间展示需要 relativeTime 插件
 dayjs.extend(relativeTime)
 
-/** 预览文本截断长度：超出部分反正被 line-clamp-2 裁掉，留着只会拖慢布局/绘制 */
-const PREVIEW_MAX = 600
+/** 列表标题截断长度：整段文本只取首行即可，长内容徒增布局成本 */
+const TITLE_MAX = 200
+/** 预览正文长度上限（主进程已截到 4000，这里再兜一层） */
+const PREVIEW_MAX = 4000
 
-/** 单行展示数据：相对时间与预览文本随列表加载一次性算好，悬停重渲染时零重算 */
+/** 类型筛选 */
+type FilterType = 'all' | ClipboardKindType
+
+/** 单行展示数据：标题/副标题/时间随列表加载一次性算好，悬停重渲染时零重算 */
 interface RowViewType {
   item: ClipboardItemType
+  kind: ClipboardKindType
+  title: string
+  isUrl: boolean
   timeText: string
-  preview: string
 }
 
 interface RowProps {
@@ -30,6 +37,30 @@ interface RowProps {
   onHover: (index: number) => void
   onPaste: (id: number) => void
   onRemove: (id: number) => void
+}
+
+const isHttpUrl = (text: string): boolean => /^https?:\/\//i.test(text.trim())
+
+/** 图片尺寸与体积："1528x806|4851234" → "1528×806 · 4.6 MB" */
+const formatImageMeta = (meta: string): string => {
+  const [size, bytes] = meta.split('|')
+  const [width, height] = (size ?? '').split('x')
+  const mb = Number(bytes) / 1024 / 1024
+  const volume = Number.isFinite(mb) && mb > 0 ? ` · ${mb >= 1 ? mb.toFixed(1) : (mb * 1024).toFixed(0)} ${mb >= 1 ? 'MB' : 'KB'}` : ''
+  return width && height ? `${width}×${height}${volume}` : volume.replace(/^ · /, '')
+}
+
+/** 文件扩展名 → 图标（选中行用白色，避免和蓝色高亮背景融在一起） */
+const FileIcon = ({ ext, active = false }: { ext: string; active?: boolean }): JSX.Element => {
+  const common = {
+    theme: 'outline' as const,
+    size: 16,
+    fill: active ? '#fff' : '#0a84ff',
+    strokeWidth: 3
+  }
+  if (ext === 'pdf') return <FilePdf {...common} />
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return <FileZip {...common} />
+  return <FileText {...common} />
 }
 
 /**
@@ -44,14 +75,36 @@ const ClipboardRow = memo(function ClipboardRow({
   onPaste,
   onRemove
 }: RowProps): JSX.Element {
+  const icon = ((): JSX.Element => {
+    if (row.kind === 'image') {
+      return <Pic theme="outline" size={16} fill={active ? '#fff' : '#0a84ff'} strokeWidth={3} />
+    }
+    if (row.kind === 'file') {
+      return <FileIcon ext={(row.item.meta || '').toLowerCase()} active={active} />
+    }
+    if (row.isUrl) {
+      return <Link theme="outline" size={16} fill={active ? '#fff' : '#0a84ff'} strokeWidth={3} />
+    }
+    return <FileText theme="outline" size={16} fill={active ? '#fff' : '#64748b'} strokeWidth={3} />
+  })()
+
   return (
     <div
       className={classNames('item', { active })}
       onClick={() => onPaste(row.item.id)}
       onMouseEnter={() => onHover(index)}
     >
-      <span className="preview">{row.preview}</span>
-      <span className="time">{row.timeText}</span>
+      <span className="kind-icon">{icon}</span>
+      <span className="item-title">{row.title}</span>
+      {row.kind !== 'text' && (
+        <span className="item-type">
+          {row.kind === 'image'
+            ? formatImageMeta(row.item.meta)
+            : (row.item.meta || '').toUpperCase()}
+        </span>
+      )}
+      {/* 前 9 条映射 ⌘1~⌘9，与 Alfred 一致，窗口内直接数字键粘贴 */}
+      {index < 9 && <span className="item-key">⌘{index + 1}</span>}
       {/* stopPropagation 避免触发行点击（复制 + 自动粘贴） */}
       <span
         className="remove"
@@ -70,7 +123,11 @@ export const Clipboard = (): JSX.Element => {
   const t = useT()
   const [items, setItems] = useState<ClipboardItemType[]>([])
   const [keyword, setKeyword] = useState('')
+  const [filter, setFilter] = useState<FilterType>('all')
   const [activeIndex, setActiveIndex] = useState(0)
+  const [preview, setPreview] = useState<ClipboardPreviewType | null>(null)
+  /** 预览结果按 id 缓存：来回移动选中时不再重复请求主进程（图片 base64 较大） */
+  const previewCache = useRef(new Map<number, ClipboardPreviewType | null>())
 
   // 相对时间随语言切换：中文用 zh-cn / zh-tw，其余用内置 en
   const locale = useI18nStore((s) => s.locale)
@@ -102,7 +159,7 @@ export const Clipboard = (): JSX.Element => {
   }, [keyword, load])
 
   // 面板是失焦即隐藏的浮层：focus 事件等价于「重新唤起」，
-  // 把上次的过滤词与选中位置清掉，恢复完整列表再开始新的选择
+  // 把上次的过滤词、类型筛选与选中位置清掉，恢复完整列表再开始新的选择
   useEffect(() => {
     const reset = (): void => {
       if (keywordRef.current) {
@@ -112,6 +169,7 @@ export const Clipboard = (): JSX.Element => {
         // 没输入过过滤词也要刷一次，唤起时拿到最新记录
         void load()
       }
+      setFilter('all')
       setActiveIndex(0)
     }
     window.addEventListener('focus', reset)
@@ -124,13 +182,14 @@ export const Clipboard = (): JSX.Element => {
   }, [load])
 
   const pasteItem = useCallback(async (id: number): Promise<void> => {
-    // 主进程：写回剪贴板 → 尝试自动粘贴 → 隐藏窗口；这里再刷新一次排序
+    // 主进程：按类型写回剪贴板 → 尝试自动粘贴 → 隐藏窗口；这里再刷新一次排序
     await window.api.clipboardPaste(id)
     void load()
   }, [load])
 
   const removeItem = useCallback(
     async (id: number): Promise<void> => {
+      previewCache.current.delete(id)
       await window.api.clipboardDelete(id)
       void load()
     },
@@ -138,51 +197,103 @@ export const Clipboard = (): JSX.Element => {
   )
 
   const clearAll = useCallback(async (): Promise<void> => {
+    previewCache.current.clear()
     await window.api.clipboardClear()
     void load()
   }, [load])
 
   const handleFilter = (e: ChangeEvent<HTMLInputElement>): void => {
     setKeyword(e.target.value)
+    setActiveIndex(0)
   }
 
   const handleHover = useCallback((index: number): void => {
     setActiveIndex(index)
   }, [])
 
-  // 相对时间 / 预览文本只在列表数据变化时重算一次，
-  // 悬停切换高亮时行组件直接复用，dayjs 不再每行每帧重跑
+  // 标题 / 时间只在数据或筛选变化时重算一次，悬停切换高亮直接复用行组件
   const rows = useMemo<RowViewType[]>(
     () =>
-      items.map((item) => ({
-        item,
-        timeText: dayjs(item.created_at).fromNow(),
-        preview:
-          item.content.length > PREVIEW_MAX
-            ? item.content.slice(0, PREVIEW_MAX) + '…'
-            : item.content
-      })),
-    [items]
+      items
+        .filter((item) => filter === 'all' || item.kind === filter)
+        .map((item) => {
+          const timeText = dayjs(item.created_at).fromNow()
+          if (item.kind === 'image') {
+            return { item, kind: item.kind, title: t('clipboard.kindImage'), isUrl: false, timeText }
+          }
+          if (item.kind === 'file') {
+            // content 存的是完整路径，列表只显示文件名（体积/类型在右侧）
+            const name = (item.path || item.content).split('/').pop() ?? item.content
+            return { item, kind: item.kind, title: name, isUrl: false, timeText }
+          }
+          const raw = item.content.replace(/\s+/g, ' ').trim()
+          return {
+            item,
+            kind: item.kind,
+            title: raw.slice(0, TITLE_MAX),
+            isUrl: isHttpUrl(raw),
+            timeText
+          }
+        }),
+    [items, filter, t]
   )
+
+  // 选中项变化时取其预览；命中缓存则直接复用
+  const activeRow = rows[activeIndex]
+  const activeId = activeRow?.item.id ?? 0
+  useEffect(() => {
+    if (!activeId) {
+      setPreview(null)
+      return
+    }
+    if (previewCache.current.has(activeId)) {
+      setPreview(previewCache.current.get(activeId) ?? null)
+      return
+    }
+    let cancelled = false
+    void window.api.clipboardPreview(activeId).then((result) => {
+      previewCache.current.set(activeId, result)
+      if (!cancelled) setPreview(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [activeId])
 
   const handleKeyEvent = useCallback(
     (e: KeyboardEvent) => {
+      // ⌘/Ctrl + 数字：直接粘贴第 N 条（与 Alfred 的 ⌘1~⌘9 一致）
+      if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+        const matched = /^Digit([1-9])$/.exec(e.code)
+        if (matched) {
+          e.preventDefault()
+          const target = rows[Number(matched[1]) - 1]
+          if (target) void pasteItem(target.item.id)
+          return
+        }
+        // ⌘⌫ 删除当前选中
+        if (e.code === 'Backspace') {
+          e.preventDefault()
+          if (activeId) void removeItem(activeId)
+          return
+        }
+      }
+
       switch (e.code) {
         case 'ArrowUp': {
-          if (items.length === 0) return
+          if (rows.length === 0) return
           e.preventDefault()
-          setActiveIndex((index) => (index <= 0 ? items.length - 1 : index - 1))
+          setActiveIndex((index) => (index <= 0 ? rows.length - 1 : index - 1))
           break
         }
         case 'ArrowDown': {
-          if (items.length === 0) return
+          if (rows.length === 0) return
           e.preventDefault()
-          setActiveIndex((index) => (index < 0 || index >= items.length - 1 ? 0 : index + 1))
+          setActiveIndex((index) => (index < 0 || index >= rows.length - 1 ? 0 : index + 1))
           break
         }
         case 'Enter': {
-          const item = items[activeIndex]
-          if (item) void pasteItem(item.id)
+          if (activeRow) void pasteItem(activeRow.item.id)
           break
         }
         case 'Escape': {
@@ -191,8 +302,7 @@ export const Clipboard = (): JSX.Element => {
         }
       }
     },
-    // pasteItem 已是稳定引用，不再需要纳入闭包依赖
-    [items, activeIndex, pasteItem]
+    [rows, activeId, activeRow, pasteItem, removeItem]
   )
 
   useEffect(() => {
@@ -205,10 +315,17 @@ export const Clipboard = (): JSX.Element => {
   const pasteById = useCallback((id: number) => void pasteItem(id), [pasteItem])
   const removeById = useCallback((id: number) => void removeItem(id), [removeItem])
 
+  const filters: { key: FilterType; label: string }[] = [
+    { key: 'all', label: t('clipboard.filterAll') },
+    { key: 'text', label: t('clipboard.filterText') },
+    { key: 'image', label: t('clipboard.filterImage') },
+    { key: 'file', label: t('clipboard.filterFile') }
+  ]
+
   return (
     <main className="p-3">
       <div className="clipboard-page">
-        <section className="drag flex items-center gap-2 pb-2 border-b border-slate-200">
+        <header className="clipboard-head drag">
           <Input
             value={keyword}
             onChange={handleFilter}
@@ -218,28 +335,76 @@ export const Clipboard = (): JSX.Element => {
             className="nodrag"
             ref={filterInputRef}
           />
-        </section>
-        <section className="clipboard-list nodrag">
-          {rows.map((row, index) => (
-            <ClipboardRow
-              key={row.item.id}
-              row={row}
-              index={index}
-              active={index === activeIndex}
-              onHover={handleHover}
-              onPaste={pasteById}
-              onRemove={removeById}
-            />
-          ))}
-          {items.length === 0 && <div className="empty">{t('clipboard.empty')}</div>}
-        </section>
+        </header>
+
+        <div className="clipboard-body">
+          <section className="clipboard-list nodrag">
+            {rows.map((row, index) => (
+              <ClipboardRow
+                key={row.item.id}
+                row={row}
+                index={index}
+                active={index === activeIndex}
+                onHover={handleHover}
+                onPaste={pasteById}
+                onRemove={removeById}
+              />
+            ))}
+            {rows.length === 0 && <div className="empty">{t('clipboard.empty')}</div>}
+          </section>
+
+          <aside className="clipboard-preview nodrag">
+            {preview === null ? (
+              <div className="preview-empty">{t('clipboard.previewEmpty')}</div>
+            ) : preview.kind === 'image' ? (
+              <>
+                <div className="preview-image">
+                  <img src={preview.dataUrl} alt="" />
+                </div>
+                <div className="preview-meta">{formatImageMeta(`${preview.width}x${preview.height}|${preview.bytes}`)}</div>
+              </>
+            ) : preview.kind === 'file' ? (
+              <div className="preview-file">
+                <FileIcon ext={preview.ext} />
+                <div className="preview-file-name" title={preview.name}>
+                  {preview.name}
+                </div>
+                <div className="preview-file-path" title={preview.path}>
+                  {preview.path}
+                </div>
+              </div>
+            ) : (
+              <>
+                <pre className="preview-text">{preview.text.slice(0, PREVIEW_MAX)}</pre>
+                {preview.truncated && (
+                  <div className="preview-note">{t('clipboard.previewTruncated')}</div>
+                )}
+              </>
+            )}
+            {activeRow && (
+              <div className="preview-time">
+                {t('clipboard.copiedAt')} {activeRow.timeText}
+              </div>
+            )}
+          </aside>
+        </div>
+
         <footer className="nodrag">
-          <span className="clipboard-hint">
-            <kbd>↑</kbd>
-            <kbd>↓</kbd> {t('clipboard.hintSelect')}
-            <kbd>↩</kbd> {t('clipboard.hintPaste')}
-            <kbd>esc</kbd> {t('clipboard.hintClose')}
-          </span>
+          <div className="clipboard-filters">
+            {filters.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={classNames('filter-chip', { active: filter === item.key })}
+                onClick={() => {
+                  setFilter(item.key)
+                  setActiveIndex(0)
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
           <span
             className="cursor-pointer text-xs text-slate-500 hover:text-red-500 select-none"
             onClick={() => void clearAll()}

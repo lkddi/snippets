@@ -57,7 +57,14 @@ const zhTW = {
     clipboard: {
       title: '歷史記錄',
       retention: { label: '保留時間', subDays: '超過 {n} 天自動清理', subForever: '永久保留全部記錄' },
-      daysUnit: '天'
+      daysUnit: '天',
+      hook: {
+        label: '連按兩次 Option 喚起',
+        subOk: '鍵盤監聽正常，任意介面連按兩次 Option 喚出面板',
+        subNoEvent: '監聽已啟動但尚未收到鍵盤事件：若連按兩次 Option 無反應，請授予「輸入監控」權限',
+        subNotRunning: '鍵盤監聽未啟動，重新啟動靈犀後可恢復',
+        action: '開啟輸入監控設定'
+      }
     },
     data: {
       title: '儲存',
@@ -102,7 +109,20 @@ const zhTW = {
     clearAll: '全部清空',
     hintSelect: '選擇',
     hintPaste: '貼上',
-    hintClose: '關閉'
+    hintClose: '關閉',
+    hintQuick: '快速貼上',
+    filterAll: '全部',
+    filterText: '文字',
+    filterImage: '圖片',
+    filterFile: '檔案',
+    kindText: '文字',
+    kindImage: '圖片',
+    kindFile: '檔案',
+    kindUrl: '連結',
+    previewEmpty: '選取一筆記錄查看預覽',
+    copiedAt: '複製於',
+    previewTruncated: '內容過長，僅預覽前 4000 個字元',
+    deleteHint: '刪除選取記錄'
   },
   content: {
     titlePlaceholder: '標題',

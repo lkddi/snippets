@@ -58,7 +58,14 @@ const en = {
     clipboard: {
       title: 'History',
       retention: { label: 'Retention', subDays: 'Auto-clean after {n} days', subForever: 'Keep all records forever' },
-      daysUnit: 'days'
+      daysUnit: 'days',
+      hook: {
+        label: 'Double-tap Option',
+        subOk: 'Keyboard hook is running — double-tap Option anywhere to open the panel',
+        subNoEvent: 'Hook is running but no key events received yet. If double-tap does nothing, grant Input Monitoring',
+        subNotRunning: 'Keyboard hook is not running — restart Lingxi to recover',
+        action: 'Open Input Monitoring settings'
+      }
     },
     data: {
       title: 'Storage',
@@ -103,7 +110,20 @@ const en = {
     clearAll: 'Clear all',
     hintSelect: 'Navigate',
     hintPaste: 'Paste',
-    hintClose: 'Close'
+    hintClose: 'Close',
+    hintQuick: 'Quick paste',
+    filterAll: 'All',
+    filterText: 'Text',
+    filterImage: 'Images',
+    filterFile: 'Files',
+    kindText: 'Text',
+    kindImage: 'Image',
+    kindFile: 'File',
+    kindUrl: 'Link',
+    previewEmpty: 'Select an item to preview',
+    copiedAt: 'Copied',
+    previewTruncated: 'Too long — showing the first 4000 characters',
+    deleteHint: 'Delete selected'
   },
   content: {
     titlePlaceholder: 'Title',

@@ -1,4 +1,7 @@
-import { clipboard, dialog, globalShortcut, ipcMain, IpcMainInvokeEvent } from 'electron'
+import { app, clipboard, dialog, globalShortcut, ipcMain, IpcMainInvokeEvent, nativeImage, shell } from 'electron'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { basename, extname, join } from 'node:path'
 import { config, del, findAll, findOne, insert as insertRow } from './db/query'
 import { findWindow, getByNameWindow } from './windows'
 import { captureFrontmostApp, pasteBackToFrontApp } from './pasteBack'
@@ -20,9 +23,78 @@ export const getClipboardShortCut = (): string => registeredClipShortCut
 
 /** 已启动的 uiohook 实例引用：退出前 stop 用，避免强杀 hook 线程 */
 let hookInstance: { stop: () => void } | null = null
+/** 钩子是否已启动：文本扩展模块共用同一个原生钩子，必须只有一处 start/stop */
+let hookStarted = false
+/** 最近一次收到全局按键的时间：用于判断「输入监控」权限是否给了（收不到事件即权限问题） */
+let lastKeyEventAt = 0
 
-/** 轮询用内存缓存：与"库里的最新一条"等价，用于去重 */
-let lastContent = ''
+/** 去重键：文本用内容，图片/文件用 hash/路径，避免同样的图片被重复入库 */
+let lastKey = ''
+
+/** 图片剪贴板的落盘目录（面板预览与粘贴都从这里读） */
+const imageDir = (): string => {
+  const dir = join(app.getPath('userData'), 'clipboard-images')
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+interface CapturedType {
+  kind: 'text' | 'image' | 'file'
+  content: string
+  path: string
+  meta: string
+  key: string
+}
+
+/** Finder 里复制文件时，剪贴板上是 public.file-url */
+const readFileUrl = (): string => {
+  try {
+    const buffer = clipboard.readBuffer('public.file-url')
+    if (!buffer || !buffer.length) return ''
+    const url = buffer.toString('utf8').trim()
+    if (!url.startsWith('file://')) return ''
+    return decodeURIComponent(url.slice('file://'.length))
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 读取当前剪贴板内容并归类。优先级：文件 > 图片 > 文本 ——
+ * 复制文件时系统也可能同时提供图片预览，必须让文件优先生效。
+ */
+const captureClipboard = (): CapturedType | null => {
+  const filePath = readFileUrl()
+  if (filePath) {
+    return {
+      kind: 'file',
+      content: filePath,
+      path: filePath,
+      meta: extname(filePath).replace('.', '').toLowerCase(),
+      key: `file:${filePath}`
+    }
+  }
+
+  const image = clipboard.readImage()
+  if (!image.isEmpty()) {
+    const png = image.toPNG()
+    const hash = createHash('sha1').update(png).digest('hex')
+    const file = join(imageDir(), `${hash}.png`)
+    if (!existsSync(file)) writeFileSync(file, png)
+    const size = image.getSize()
+    return {
+      kind: 'image',
+      content: `图片 ${size.width}×${size.height}`,
+      path: file,
+      meta: `${size.width}x${size.height}|${png.length}`,
+      key: `image:${hash}`
+    }
+  }
+
+  const text = clipboard.readText()
+  if (!text) return null
+  return { kind: 'text', content: text, path: '', meta: '', key: `text:${text}` }
+}
 
 const toggleClipboardWindow = (): void => {
   const win = getByNameWindow('clipboard')
@@ -40,14 +112,24 @@ const toggleClipboardWindow = (): void => {
 /** 轮询剪贴板：内容非空且与最新一条不同才入库，超出上限删最旧，然后通知窗口刷新 */
 const pollClipboard = (): void => {
   try {
-    const content = clipboard.readText()
-    // 与最近一条相同则跳过（最简单的去重方案，不做"历史中上移"）
-    if (!content || content === lastContent) return
-    lastContent = content
+    const captured = captureClipboard()
+    if (!captured) {
+      // 剪贴板被清空：下次有内容时应当重新入库
+      lastKey = ''
+      return
+    }
+    if (captured.key === lastKey) return
+    lastKey = captured.key
 
     insertRow(
-      'insert into clipboard_items (content, created_at) values (@content, datetime())',
-      { content }
+      `insert into clipboard_items (content, created_at, kind, path, meta)
+       values (@content, datetime(), @kind, @path, @meta)`,
+      {
+        content: captured.content,
+        kind: captured.kind,
+        path: captured.path,
+        meta: captured.meta
+      }
     )
     del(
       'delete from clipboard_items where id not in (select id from clipboard_items order by id desc limit @limit)',
@@ -63,9 +145,15 @@ const pollClipboard = (): void => {
 
 /**
  * 双击 Option 唤起：uiohook 是原生模块，加载失败（如架构不匹配）时
- * 降级为仅支持 accelerator 模式并打印错误，绝不允许让主进程崩溃
+ * 降级为仅支持 accelerator 模式并打印错误，绝不允许让主进程崩溃。
+ *
+ * 注意：这是全局唯一的原生键盘钩子持有者。文本扩展模块只能调用
+ * ensureClipboardHookStarted() 复用它，绝不能自己 start/stop ——
+ * 之前 expander 在规则清空时 uIOhook.stop()，把这里的双击检测一起关了，
+ * 表现就是「剪贴板快捷键突然失效」，且重新加规则也不会恢复。
  */
 const startDoubleOptionHook = async (): Promise<void> => {
+  if (hookStarted) return
   try {
     const { uIOhook, UiohookKey } = await import('uiohook-napi')
     let firstAltDownAt = 0
@@ -75,6 +163,7 @@ const startDoubleOptionHook = async (): Promise<void> => {
     let debugKeyDownLeft = 5
 
     uIOhook.on('keydown', (event) => {
+      lastKeyEventAt = Date.now()
       if (debugKeyDownLeft > 0) {
         debugKeyDownLeft--
         console.log(
@@ -113,6 +202,7 @@ const startDoubleOptionHook = async (): Promise<void> => {
       return
     }
     hookInstance = uIOhook
+    hookStarted = true
     // 便于排查：start 成功只代表钩子线程起来了，macOS 未授予"输入监控"权限时
     // 事件会被系统静默丢弃（不报错、收不到 keydown），这是双击 Option 无反应的头号原因
     console.log('[clipboard] uiohook 键盘监听已启动（若无反应请检查 输入监控 权限）')
@@ -120,6 +210,19 @@ const startDoubleOptionHook = async (): Promise<void> => {
     console.error('加载 uiohook 失败，双击 Option 唤起不可用，可在设置中改用快捷键模式', error)
   }
 }
+
+/** 供其它模块（文本扩展）复用的启动入口：幂等，重复调用不会二次 start */
+export const ensureClipboardHookStarted = async (): Promise<boolean> => {
+  if (!hookStarted) await startDoubleOptionHook()
+  return hookStarted
+}
+
+/** 钩子运行状态 + 最近按键时间：设置页据此提示「输入监控」权限是否缺失 */
+export const getClipboardHookStatus = (): {
+  running: boolean
+  lastEventAt: number
+  shortCut: string
+} => ({ running: hookStarted, lastEventAt: lastKeyEventAt, shortCut: registeredClipShortCut })
 
 /** 应用退出前停止 uiohook 全局键盘监听，避免退出时强杀 hook 线程 */
 export const stopClipboardHook = (): void => {
@@ -129,6 +232,7 @@ export const stopClipboardHook = (): void => {
     console.error('停止剪贴板键盘监听失败', error)
   }
   hookInstance = null
+  hookStarted = false
 }
 
 /**
@@ -213,18 +317,83 @@ ipcMain.handle('clipboard:clear', () => {
 })
 
 ipcMain.handle('clipboard:paste', (_event: IpcMainInvokeEvent, id: number) => {
-  const row = findOne('select content from clipboard_items where id = @id', { id }) as
-    | { content: string }
+  const row = findOne('select content, kind, path from clipboard_items where id = @id', { id }) as
+    | { content: string; kind?: string; path?: string }
     | undefined
   if (!row) return false
 
-  clipboard.writeText(row.content)
+  // 按类型还原到剪贴板：图片重新写回图像本身，文件写回 file-url（Finder 可直接粘贴文件）
+  if (row.kind === 'image' && row.path && existsSync(row.path)) {
+    const image = nativeImage.createFromPath(row.path)
+    if (!image.isEmpty()) clipboard.writeImage(image)
+    else clipboard.writeText(row.content)
+  } else if (row.kind === 'file' && row.path) {
+    clipboard.clear()
+    clipboard.writeBuffer('public.file-url', Buffer.from(`file://${encodeURI(row.path)}`))
+  } else {
+    clipboard.writeText(row.content)
+  }
+
   const win = findWindow('clipboard')
   if (win && !win.isDestroyed()) win.hide()
 
   // 隐藏面板后焦点不会立刻回到原应用：等片刻后把唤起面板前记录的应用
   // 显式调回前台，最后才发 Cmd+V，保证内容粘回原来的光标处
   pasteBackToFrontApp()
+  return true
+})
+
+/** 面板右侧预览：图片返回缩略图 data URL（避免渲染层直接读磁盘），文本返回正文片段 */
+ipcMain.handle('clipboard:preview', (_event: IpcMainInvokeEvent, id: number) => {
+  const row = findOne('select content, kind, path, meta from clipboard_items where id = @id', {
+    id
+  }) as { content: string; kind?: string; path?: string; meta?: string } | undefined
+  if (!row) return null
+
+  if (row.kind === 'image' && row.path && existsSync(row.path)) {
+    const image = nativeImage.createFromPath(row.path)
+    if (!image.isEmpty()) {
+      const size = image.getSize()
+      // 预览不需要原图，缩到 480px 内再转 base64，避免大图撑爆 IPC
+      const scale = Math.min(1, 480 / Math.max(size.width, size.height))
+      const thumb =
+        scale < 1
+          ? image.resize({
+              width: Math.max(1, Math.round(size.width * scale)),
+              height: Math.max(1, Math.round(size.height * scale))
+            })
+          : image
+      return {
+        kind: 'image',
+        dataUrl: thumb.toDataURL(),
+        width: size.width,
+        height: size.height,
+        bytes: Number((row.meta ?? '').split('|')[1] ?? 0)
+      }
+    }
+  }
+
+  if (row.kind === 'file' && row.path) {
+    return { kind: 'file', path: row.path, name: basename(row.path), ext: row.meta ?? '' }
+  }
+
+  const text = row.content
+  return { kind: 'text', text: text.slice(0, 4000), truncated: text.length > 4000 }
+})
+
+/** 设置页诊断：钩子是否在跑、最近是否收到过按键（判断「输入监控」权限） */
+ipcMain.handle('clipboard:hook-status', () => getClipboardHookStatus())
+
+/**
+ * 打开 macOS「输入监控」授权面板。
+ * 重装 / 换签名的应用会被系统当成新应用，需要重新授权，
+ * 双击 Option 失效时用户可以直接跳过去勾选。
+ */
+ipcMain.handle('clipboard:open-permission', () => {
+  if (process.platform !== 'darwin') return false
+  void shell.openExternal(
+    'x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent'
+  )
   return true
 })
 
@@ -249,19 +418,23 @@ const cleanExpiredItems = (): void => {
 export const initClipboard = (): void => {
   // 先对齐"最新一条"再开始轮询，避免把上一次退出前的旧内容当成新记录再插一遍
   try {
-    const row = findOne('select content from clipboard_items order by id desc limit 1') as
-      | { content: string }
-      | undefined
-    lastContent = row?.content ?? ''
+    const row = findOne(
+      'select content, kind, path from clipboard_items order by id desc limit 1'
+    ) as { content: string; kind?: string; path?: string } | undefined
+    lastKey = row
+      ? row.kind === 'file' || row.kind === 'image'
+        ? `${row.kind}:${row.path ?? ''}`
+        : `text:${row.content}`
+      : ''
   } catch (error) {
     console.error('初始化剪贴板历史失败', error)
-    lastContent = ''
+    lastKey = ''
   }
   // 启动时清一次过期记录，之后每小时清一次（记录以天为粒度过期，无需更频繁）
   cleanExpiredItems()
   setInterval(cleanExpiredItems, 60 * 60 * 1000)
   setInterval(pollClipboard, POLL_INTERVAL)
-  void startDoubleOptionHook()
+  void ensureClipboardHookStarted()
 }
 
 /** 读取 config 里的剪贴板快捷键并注册，启动阶段不弹窗 */

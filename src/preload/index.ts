@@ -106,6 +106,19 @@ const api = {
   clipboardPaste: (id: number) => {
     return ipcRenderer.invoke('clipboard:paste', id)
   },
+  clipboardPreview: (id: number) => {
+    return ipcRenderer.invoke('clipboard:preview', id) as Promise<ClipboardPreviewType | null>
+  },
+  clipboardHookStatus: () => {
+    return ipcRenderer.invoke('clipboard:hook-status') as Promise<{
+      running: boolean
+      lastEventAt: number
+      shortCut: string
+    }>
+  },
+  openClipboardPermission: () => {
+    return ipcRenderer.invoke('clipboard:open-permission') as Promise<boolean>
+  },
   clipboardShortCut: (shortCut: string) => {
     return ipcRenderer.invoke('clipboardShortCut', shortCut)
   },

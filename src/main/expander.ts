@@ -1,6 +1,7 @@
 import { clipboard, ipcMain } from 'electron'
 import { execFileSync } from 'node:child_process'
 import { UiohookKey, uIOhook } from 'uiohook-napi'
+import { ensureClipboardHookStarted } from './clipboard'
 import { config } from './db/query'
 
 /**
@@ -71,7 +72,6 @@ interface ExpansionEntry {
 
 /** 内存中的规则与开关：只在设置保存（expansions:reload）时刷新，避免每次按键查库 */
 let entries: ExpansionEntry[] = []
-let hookRunning = false
 /** 展开过程中注入的退格/粘贴会再次触发钩子，用标志位过滤掉 */
 let expanding = false
 /** 最近输入的字符缓冲 */
@@ -176,26 +176,15 @@ const handleKeydown = (event: {
   }
 }
 
-/** 按设置启停钩子：配置变化和启动时调用 */
+/** 按设置启停：钩子归剪贴板模块统一持有，这里只控制「有没有规则」 */
 export const reloadExpansions = (): void => {
   reloadEntries()
+  buffer = ''
 
-  if (entries.length > 0 && !hookRunning) {
-    try {
-      uIOhook.start()
-      hookRunning = true
-    } catch (error) {
-      console.error('文本扩展键盘钩子启动失败', error)
-    }
-  } else if (entries.length === 0 && hookRunning) {
-    try {
-      uIOhook.stop()
-    } catch (error) {
-      console.error('文本扩展键盘钩子停止失败', error)
-    }
-    hookRunning = false
-    buffer = ''
-  }
+  // 规则非空 → 确保全局键盘钩子在跑（幂等复用，绝不自己 start）；
+  // 规则清空时也不 stop —— 钩子同时承担剪贴板的双击 Option 唤起，
+  // 这里 stop 会把剪贴板快捷键一起弄失效
+  if (entries.length > 0) void ensureClipboardHookStarted()
 }
 
 // 监听器只注册一次：handler 读的是模块内的最新规则，start/stop 控制钩子即可

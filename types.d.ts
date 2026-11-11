@@ -150,12 +150,27 @@ type AppType = {
   alias?: string
 }
 
+/** 剪贴板记录类型：文本 / 图片 / 文件（Finder 复制的文件） */
+type ClipboardKindType = 'text' | 'image' | 'file'
+
 /** 剪贴板历史记录 */
 type ClipboardItemType = {
   id: number
   content: string
+  /** 记录类型；老数据迁移后统一为 text */
+  kind: ClipboardKindType
+  /** 图片 / 文件的磁盘路径，文本为空串 */
+  path: string
+  /** 图片为 "宽x高|字节数"，文件为扩展名 */
+  meta: string
   created_at: string
 }
+
+/** 面板右侧预览内容 */
+type ClipboardPreviewType =
+  | { kind: 'image'; dataUrl: string; width: number; height: number; bytes: number }
+  | { kind: 'file'; path: string; name: string; ext: string }
+  | { kind: 'text'; text: string; truncated: boolean }
 
 /** 说明页信息：当前版本 / GitHub 最新版本与下载地址 / 作者信息 */
 type AboutInfoType = {

@@ -57,7 +57,14 @@ const zhCN = {
     clipboard: {
       title: '历史记录',
       retention: { label: '保存时长', subDays: '超过 {n} 天自动清理', subForever: '永久保留全部记录' },
-      daysUnit: '天'
+      daysUnit: '天',
+      hook: {
+        label: '双击 Option 唤起',
+        subOk: '键盘监听正常，任意界面连按两次 Option 唤出面板',
+        subNoEvent: '监听已启动但尚未收到键盘事件：若连按两次 Option 无反应，请授予「输入监控」权限',
+        subNotRunning: '键盘监听未启动，重启灵犀后可恢复',
+        action: '打开输入监控设置'
+      }
     },
     data: {
       title: '存储',
@@ -99,7 +106,20 @@ const zhCN = {
     clearAll: '清空全部',
     hintSelect: '选择',
     hintPaste: '粘贴',
-    hintClose: '关闭'
+    hintClose: '关闭',
+    hintQuick: '快速粘贴',
+    filterAll: '全部',
+    filterText: '文本',
+    filterImage: '图片',
+    filterFile: '文件',
+    kindText: '文本',
+    kindImage: '图片',
+    kindFile: '文件',
+    kindUrl: '链接',
+    previewEmpty: '选中一条记录查看预览',
+    copiedAt: '复制于',
+    previewTruncated: '内容过长，仅预览前 4000 个字符',
+    deleteHint: '删除选中记录'
   },
   content: {
     titlePlaceholder: '标题',
