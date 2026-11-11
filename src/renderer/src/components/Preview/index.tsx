@@ -14,13 +14,6 @@ import './styles.scss'
   return `${bytes} B`
 }
 
-/** 系统 Quick Look 面板只有 macOS 提供，其它平台不展示入口 */
-const isMac = ((): boolean => {
-  const platform = window.electron?.process?.platform
-  if (platform) return platform === 'darwin'
-  return navigator.userAgent.includes('Mac')
-})()
-
 /** 预览浮层：盖在结果列表上，空格唤出、空格/Esc/点击收起 */
 export default function Preview(): JSX.Element | null {
   const t = useT()
@@ -136,17 +129,6 @@ export default function Preview(): JSX.Element | null {
       <footer>
         <Pic theme="outline" size="12" fill="#94a3b8" strokeWidth={4} />
         <span>{t('search.preview.hint')}</span>
-        {'path' in preview && isMac && (
-          <button
-            className="preview-quicklook"
-            onClick={(e) => {
-              e.stopPropagation()
-              void window.api.openQuickLook(preview.path)
-            }}
-          >
-            {t('search.preview.quicklook')}
-          </button>
-        )}
       </footer>
     </aside>
   )

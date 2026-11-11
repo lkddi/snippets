@@ -31,7 +31,10 @@ import { reloadExpansions } from './expander'
 // 全局热键只有一个进程能拿到，第二个实例拿不到却又抢着显示窗口，
 // 表现就是"快捷键没反应"。这里让后来的实例直接退出，由已有实例响应。
 if (!app.requestSingleInstanceLock()) {
-  app.quit()
+  // 必须用 exit 而不是 quit：quit 会走 before-quit / will-quit 流程，
+  // 而此刻 app 还没 ready，will-quit 里的 globalShortcut.unregisterAll() 会抛
+  // "globalShortcut cannot be used before the app is ready"，直接弹出崩溃框
+  app.exit(0)
 } else {
   // 第二个实例启动时，已有实例直接唤起搜索窗
   app.on('second-instance', () => {

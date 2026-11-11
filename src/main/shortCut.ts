@@ -343,10 +343,16 @@ ipcMain.handle('shortCut', (_event: IpcMainInvokeEvent, shortCut: string) => {
 })
 
 app.on('will-quit', () => {
-  globalShortcut.unregisterAll()
-  registeredShortCut = ''
-  // uiohook 全局键盘监听退出前先 stop，避免强杀 hook 线程
-  stopClipboardHook()
+  // app 未 ready 就退出（单实例锁失配、初始化失败）时，globalShortcut 还不能调用
+  if (!app.isReady()) return
+  try {
+    globalShortcut.unregisterAll()
+    registeredShortCut = ''
+    // uiohook 全局键盘监听退出前先 stop，避免强杀 hook 线程
+    stopClipboardHook()
+  } catch (error) {
+    console.error('退出前注销快捷键失败', error)
+  }
 })
 
 export const registerAppGlobShortcut = (): void => {

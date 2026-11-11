@@ -201,20 +201,21 @@ export default () => {
           if (total === 0) break
           // 防御：结果缩短后下标可能越界
           const safeIndex = Math.min(activeIndex, total - 1)
+          const target = buildTarget(safeIndex)
           // 网页兜底行没有可预览内容，空格照常输入
-          if (!buildTarget(safeIndex)) break
+          if (!target) break
           e.preventDefault()
-          if (closePreview()) break
-          void loadPreview(safeIndex)
-          break
-        }
-        case 'KeyY': {
-          // ⌘Y 交给系统 Quick Look 面板，想看完整排版时用它
-          if (!(e.metaKey || e.ctrlKey)) break
-          const current = previewRef.current
-          if (!current || !('path' in current)) break
-          e.preventDefault()
-          void window.api.openQuickLook(current.path)
+          // 片段存在数据库里、没有文件可交给系统，只能走内嵌预览
+          if (target.kind === 'snippet') {
+            if (closePreview()) break
+            void loadPreview(safeIndex)
+            break
+          }
+          // 文件 / 应用交给 macOS 自带的 Quick Look 面板（Finder 里空格那个）；
+          // 非 macOS 或调不起来时再退回内嵌预览
+          void window.api.openQuickLook(target.path).then((opened) => {
+            if (!opened) void loadPreview(safeIndex)
+          })
           break
         }
         case 'Escape': {

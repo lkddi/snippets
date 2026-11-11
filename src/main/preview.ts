@@ -1,4 +1,4 @@
-import { ipcMain, IpcMainInvokeEvent, nativeImage } from 'electron'
+import { app, ipcMain, IpcMainInvokeEvent, nativeImage } from 'electron'
 import { spawn, type ChildProcess } from 'node:child_process'
 import {
   closeSync,
@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os'
 import { basename, extname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { findOne } from './db/query'
+import { findWindow } from './windows'
 
 /** PDF 走 Chromium 内置阅读器，比缩略图强得多 */
 const PDF_EXTS = ['pdf']
@@ -314,26 +315,57 @@ const previewFile = async (path: string): Promise<SearchPreviewType | null> => {
  */
 /**
  * 用系统 Quick Look 面板（Finder 里空格弹出的那个）打开文件。
- * 它属于 AppKit 的独立浮动面板，只能由系统进程渲染，嵌不进我们的窗口，
- * 所以做成"⌘Y 交给系统看"的补充入口，而不是内嵌预览。
+ * 面板由系统的 qlmanage 进程渲染，只会以独立浮层出现，无法嵌进我们的窗口，
+ * 这也是"空格即系统预览"的实现方式。
+ * 返回 false 表示这台机器上调不起来（非 macOS / qlmanage 失败），调用方回退内嵌预览。
  */
 let quickLookChild: ChildProcess | null = null
 
-ipcMain.handle('preview:quicklook', (_event: IpcMainInvokeEvent, path: string): boolean => {
-  if (process.platform !== 'darwin' || !path || !existsSync(path)) return false
+ipcMain.handle('preview:quicklook', (_event: IpcMainInvokeEvent, path: string): Promise<boolean> => {
+  if (process.platform !== 'darwin' || !path || !existsSync(path)) return Promise.resolve(false)
   try {
     quickLookChild?.kill()
   } catch {
     // 上一个预览窗口已经自己关掉了
   }
-  try {
-    quickLookChild = spawn('/usr/bin/qlmanage', ['-p', path], { stdio: 'ignore', detached: true })
-    quickLookChild.unref()
-    return true
-  } catch (error) {
-    console.error('打开系统预览失败', error)
-    return false
-  }
+
+  return new Promise((resolve) => {
+    let settled = false
+    let timer: NodeJS.Timeout | undefined
+    const settle = (value: boolean): void => {
+      if (settled) return
+      settled = true
+      if (timer) clearTimeout(timer)
+      resolve(value)
+    }
+
+    let child: ChildProcess
+    try {
+      child = spawn('/usr/bin/qlmanage', ['-p', path], { stdio: 'ignore' })
+      // 只 unref，不 detach：既能检查退出时机（预览窗口关闭），又不会拖住应用退出
+      child.unref()
+    } catch (error) {
+      console.error('打开系统预览失败', error)
+      return settle(false)
+    }
+    quickLookChild = child
+
+    // 400ms 还活着就认为面板已经弹出来了；期间退出且非 0 视为失败
+    timer = setTimeout(() => settle(true), 400)
+
+    child.on('error', () => settle(false))
+    child.on('exit', (code) => {
+      // 还没到 400ms 就退出：只有正常退出才算成功（某些系统上 qlmanage 会转交后立即返回）
+      settle((code ?? 0) === 0)
+      if (quickLookChild !== child) return
+      quickLookChild = null
+      // 系统预览窗口关掉后把焦点还给搜索窗，方便接着输入
+      if (!app.isReady()) return
+      app.focus({ steal: true })
+      const win = findWindow('search')
+      if (win && !win.isDestroyed() && win.isVisible()) win.focus()
+    })
+  })
 })
 
 ipcMain.handle(
