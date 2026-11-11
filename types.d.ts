@@ -173,8 +173,43 @@ type ClipboardPreviewType =
   | { kind: 'file'; path: string; name: string; ext: string }
   | { kind: 'text'; text: string; truncated: boolean }
 
-/** 说明页信息：当前版本 / GitHub 最新版本与下载地址 / 作者信息 */
-type AboutInfoType = {
+/** 搜索窗空格预览的请求目标 */
+type SearchPreviewTarget =
+  | { kind: 'file'; path: string }
+  | { kind: 'app'; path: string; name: string }
+  | { kind: 'snippet'; id: number }
+
+/**
+ * 搜索窗预览内容（空格键唤出）：
+ * image 图片缩略图 / text 文本片段 / info 文件元信息 / snippet 片段正文 / app 应用信息
+ */
+type SearchPreviewType =
+  | {
+      kind: 'image'
+      name: string
+      path: string
+      dataUrl: string
+      width: number
+      height: number
+      bytes: number
+    }
+  | { kind: 'text'; name: string; path: string; text: string; truncated: boolean; bytes: number }
+  | {
+      kind: 'info'
+      name: string
+      path: string
+      bytes: number
+      /** ISO 时间串，渲染层用 dayjs 格式化 */
+      modified: string
+      ext: string
+      isDir: boolean
+      /** 文件夹内的条目数（非文件夹为 0） */
+      entries: number
+    }
+  | { kind: 'snippet'; title: string; text: string; truncated: boolean }
+  | { kind: 'app'; name: string; path: string }
+
+/** 说明页信息：当前版本 / GitHub 最新版本与下载地址 / 作者信息 */type AboutInfoType = {
   currentVersion: string
   latestVersion: string
   releaseUrl: string

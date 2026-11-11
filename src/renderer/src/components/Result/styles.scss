@@ -4,6 +4,24 @@
   background: transparent;
   margin: 0;
   padding: 2px 8px 8px;
+  /* 结果超出窗口高度时在外壳内部滚动，外壳本身不再被顶高 */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: rgb(15 23 42 / 14%);
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
   .group-label {
     padding: 8px 10px 2px;

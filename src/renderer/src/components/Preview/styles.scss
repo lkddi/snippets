@@ -1,0 +1,154 @@
+/* 搜索窗空格预览：盖住结果列表，头部标题 + 摘要，底部快捷键提示 */
+
+.search-preview {
+  position: absolute;
+  /* 搜索栏固定 56px，预览只占下方结果区 */
+  inset: 56px 0 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: rgb(252 252 253 / 97%);
+  backdrop-filter: blur(24px);
+  cursor: default;
+  animation: preview-in 0.12s ease-out;
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 14px 4px;
+    flex-shrink: 0;
+  }
+
+  .preview-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .preview-meta {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .preview-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 2px 14px 0;
+    overflow: hidden;
+  }
+
+  /* 图片：撑满可用空间并保持比例 */
+  .preview-shot {
+    display: block;
+    margin: auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgb(15 23 42 / 14%);
+  }
+
+  /* 文本 / 代码：等宽字体、可滚动、可选中复制 */
+  .preview-code {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: #334155;
+    white-space: pre-wrap;
+    word-break: break-all;
+    user-select: text;
+  }
+
+  /* 片段是中文正文，不该用等宽字体 */
+  .preview-code.is-snippet {
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .preview-note {
+    flex-shrink: 0;
+    padding: 4px 0 2px;
+    font-size: 10px;
+    color: #d97706;
+  }
+
+  /* 文件 / 文件夹 / 应用：图标 + 路径 + 大小与修改时间 */
+  .preview-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 100%;
+    text-align: center;
+    padding: 0 6px;
+  }
+
+  .preview-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid rgb(15 23 42 / 6%);
+  }
+
+  .preview-path {
+    max-width: 100%;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #64748b;
+    word-break: break-all;
+    user-select: text;
+  }
+
+  .preview-facts {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+  }
+
+  footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 14px 8px;
+    font-size: 10px;
+    color: #94a3b8;
+    user-select: none;
+  }
+}
+
+@keyframes preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

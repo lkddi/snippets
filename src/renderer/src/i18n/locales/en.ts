@@ -174,8 +174,16 @@ const en = {
     errDuplicate: 'Keyword "{kw}" is already used by another engine'
   },
   search: {
-    placeholder: 'Search apps / files / snippets; press Enter to web search',
-    snippetPlaceholder: 'Search snippets...'
+    placeholder: 'Search apps / files / snippets — Space to preview, Enter to open',
+    snippetPlaceholder: 'Search snippets...',
+    preview: {
+      folder: 'Folder',
+      items: '{n} items',
+      snippet: 'Snippet',
+      app: 'App',
+      truncated: 'Content is long — showing the first 20 KB',
+      hint: 'Space / Esc to close preview'
+    }
   }
 }
 

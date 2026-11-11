@@ -6,6 +6,8 @@ import './apps'
 // 文件搜索（files:search / files:open / files:selectDir）与网页搜索（web:open）
 import './files'
 import './webSearch'
+// 搜索窗空格预览（preview:item）
+import './preview'
 // 说明页：版本 / 最新版检查 / 外链打开
 import './about'
 // 系统语言：app:locale（供设置页「跟随系统」解析）

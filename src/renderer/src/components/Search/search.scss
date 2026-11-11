@@ -2,6 +2,12 @@
 
 /* 外壳：搜索栏与结果列表共用，统一圆角、描边与阴影 */
 .launcher-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* 结果多时外壳不能顶出窗口：外层 p-3 占 24px，剩余高度给结果列表内部滚动，
+     否则预览浮层（绝对定位在这里面）会被窗口底部裁掉 */
+  max-height: calc(100vh - 24px);
   border: 1px solid rgb(15 23 42 / 8%);
   border-radius: 14px;
   box-shadow: 0 18px 48px rgb(15 23 42 / 22%), 0 2px 8px rgb(15 23 42 / 8%);
@@ -19,6 +25,7 @@
 .search-bar {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 10px;
   height: 56px;
   padding: 0 14px;

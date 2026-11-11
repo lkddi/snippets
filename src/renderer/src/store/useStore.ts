@@ -13,6 +13,9 @@ interface StateProps {
   /** 网页搜索兜底项：有关键词就存在，展示在结果末尾 */
   web: WebSearchType | null
   setWeb: (web: WebSearchType | null) => void
+  /** 空格唤出的预览内容，null 表示预览未打开（瞬态） */
+  preview: SearchPreviewType | null
+  setPreview: (preview: SearchPreviewType | null) => void
   search: string
   setSearch: (search: string) => void
   error: string
@@ -54,6 +57,8 @@ export const useStore = create(
       setFiles: (files) => set({ files }),
       web: null,
       setWeb: (web) => set({ web }),
+      preview: null,
+      setPreview: (preview) => set({ preview }),
       search: '',
       setSearch: (content) => set({ search: content }),
       error: '',

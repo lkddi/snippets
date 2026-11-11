@@ -173,8 +173,16 @@ const zhTW = {
     errDuplicate: '關鍵字「{kw}」已被其他引擎使用'
   },
   search: {
-    placeholder: '搜尋 App / 檔案 / 片段，按 Enter 以搜尋引擎搜尋',
-    snippetPlaceholder: '搜尋片段...'
+    placeholder: '搜尋 App / 檔案 / 片段，空白鍵預覽，Enter 開啟',
+    snippetPlaceholder: '搜尋片段...',
+    preview: {
+      folder: '資料夾',
+      items: '{n} 項',
+      snippet: '片段',
+      app: '應用程式',
+      truncated: '內容較長，僅顯示前 20 KB',
+      hint: '空白鍵 / Esc 關閉預覽'
+    }
   }
 }
 

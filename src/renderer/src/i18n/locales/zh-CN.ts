@@ -170,8 +170,16 @@ const zhCN = {
     errDuplicate: '关键字「{kw}」已被其它引擎使用'
   },
   search: {
-    placeholder: '搜索应用 / 文件 / 片段，回车用搜索引擎搜索',
-    snippetPlaceholder: '搜索片段...'
+    placeholder: '搜索应用 / 文件 / 片段，空格预览，回车打开',
+    snippetPlaceholder: '搜索片段...',
+    preview: {
+      folder: '文件夹',
+      items: '{n} 项',
+      snippet: '片段',
+      app: '应用',
+      truncated: '内容较长，仅显示前 20 KB',
+      hint: '空格 / Esc 关闭预览'
+    }
   }
 }
 

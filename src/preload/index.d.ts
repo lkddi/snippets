@@ -68,6 +68,8 @@ declare global {
       clipboardShortCut: (shortCut: string) => Promise<boolean>
       /** 搜索窗选中片段回车：写回剪贴板并模拟 Cmd+V 粘回唤起前的光标处，然后收起搜索窗 */
       pasteSnippet: (content: string) => Promise<boolean>
+      /** 搜索窗空格预览：返回图片缩略图 / 文本正文 / 文件信息 / 片段正文 */
+      previewItem: (target: SearchPreviewTarget) => Promise<SearchPreviewType | null>
       /** 说明页信息：当前版本 / GitHub 最新版本与下载地址 / 作者信息 */
       getAboutInfo: () => Promise<AboutInfoType>
       /** 用系统默认浏览器打开 http/https 链接 */

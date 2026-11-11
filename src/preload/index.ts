@@ -126,6 +126,10 @@ const api = {
   pasteSnippet: (content: string) => {
     return ipcRenderer.invoke('snippet:paste', content) as Promise<boolean>
   },
+  /** 搜索窗空格预览：文件 / 片段 / 应用返回不同形态的预览内容 */
+  previewItem: (target: SearchPreviewTarget) => {
+    return ipcRenderer.invoke('preview:item', target) as Promise<SearchPreviewType | null>
+  },
   // 说明页：当前版本 / GitHub 最新版 / 打开外部链接
   getAboutInfo: () => {
     return ipcRenderer.invoke('about:info') as Promise<AboutInfoType>

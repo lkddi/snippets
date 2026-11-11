@@ -1,5 +1,6 @@
 import isPropValid from '@emotion/is-prop-valid'
 import Error from '@renderer/components/Error'
+import Preview from '@renderer/components/Preview'
 import Result from '@renderer/components/Result'
 import Search from '@renderer/components/Search'
 import useIgnoreMouseEvents from '@renderer/hooks/useIgnoreMouseEvents'
@@ -24,6 +25,8 @@ function Home(): JSX.Element {
         <div className="launcher-shell">
           <Search />
           <Result />
+          {/* 空格预览浮层：盖在结果区之上，不打开时不渲染 */}
+          <Preview />
         </div>
       </main>
     </StyleSheetManager>
