@@ -37,8 +37,9 @@ const zhCN = {
       addDir: '添加目录',
       fileExts: {
         label: '文件类型',
-        sub: '只搜索这些扩展名的文件，留空表示不限类型；多个用逗号分隔',
-        placeholder: '如：pdf, docx, md（留空不限）'
+        sub: '勾选常用类型即可搜索，特殊类型手动补充；全部不选 = 不限类型',
+        custom: '其它',
+        placeholder: '补充其它类型，如：epub, ipynb'
       }
     },
     clipboard: {

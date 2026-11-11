@@ -37,8 +37,9 @@ const zhTW = {
       addDir: '加入目錄',
       fileExts: {
         label: '檔案類型',
-        sub: '僅搜尋這些副檔名的檔案，留空表示不限類型；多個用逗號分隔',
-        placeholder: '如：pdf, docx, md（留空不限）'
+        sub: '勾選常用類型即可搜尋，特殊類型手動補充；全部不選 = 不限類型',
+        custom: '其它',
+        placeholder: '補充其它類型，如：epub, ipynb'
       }
     },
     clipboard: {

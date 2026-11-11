@@ -38,8 +38,9 @@ const en = {
       addDir: 'Add directory',
       fileExts: {
         label: 'File types',
-        sub: 'Only search files with these extensions; leave empty for all types',
-        placeholder: 'e.g. pdf, docx, md (empty = all)'
+        sub: 'Check common types to search them, or add custom extensions; none checked = all types',
+        custom: 'Custom',
+        placeholder: 'Add others, e.g. epub, ipynb'
       }
     },
     clipboard: {

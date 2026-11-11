@@ -3,6 +3,7 @@ import {
   Clipboard,
   Code,
   DatabaseConfig,
+  Earth,
   FolderSearch,
   Info,
   Keyboard,
@@ -30,7 +31,8 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: '/config/general', label: '通用', icon: Power },
       { to: '/config/shortcuts', label: '快捷键', icon: Keyboard },
       { to: '/config/apps', label: '应用快捷键', icon: ApplicationOne },
-      { to: '/config/search', label: '搜索', icon: FolderSearch },
+      { to: '/config/webSearch', label: '网页搜索', icon: Earth },
+      { to: '/config/files', label: '文件搜索', icon: FolderSearch },
       { to: '/config/clipboard', label: '剪贴板', icon: Clipboard },
       { to: '/config/data', label: '数据', icon: DatabaseConfig },
       { to: '/config/about', label: '说明', icon: Info }

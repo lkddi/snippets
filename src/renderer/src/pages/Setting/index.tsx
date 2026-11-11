@@ -23,8 +23,26 @@ import './styles.scss'
 
 type ActionData = { error?: string; ok?: boolean; warning?: string } | undefined
 
+/** 常用文档类型预设：勾选即加入文件搜索白名单，特殊类型走手动输入 */
+const PRESET_EXT_GROUPS: { label: string; exts: string[] }[] = [
+  { label: '文档', exts: ['pdf', 'doc', 'docx', 'txt', 'md', 'rtf', 'csv'] },
+  { label: '表格', exts: ['xls', 'xlsx', 'numbers'] },
+  { label: '演示', exts: ['ppt', 'pptx', 'key'] },
+  { label: '图片', exts: ['png', 'jpg', 'gif', 'webp', 'svg'] },
+  { label: '压缩包', exts: ['zip', 'rar', '7z'] }
+]
+const PRESET_EXTS = PRESET_EXT_GROUPS.flatMap((group) => group.exts)
+
 /** 设置分区：与左侧导航一一对应（代码片段是独立路由，不在这里渲染） */
-export type SettingSection = 'general' | 'shortcuts' | 'apps' | 'search' | 'clipboard' | 'data' | 'about'
+export type SettingSection =
+  | 'general'
+  | 'shortcuts'
+  | 'apps'
+  | 'webSearch'
+  | 'files'
+  | 'clipboard'
+  | 'data'
+  | 'about'
 
 const isMac = (): boolean => {
   const platform = window.electron?.process?.platform
@@ -65,16 +83,22 @@ export const Setting = ({ section }: { section: SettingSection }) => {
   const [dirs, setDirs] = useState<string[]>(
     Array.isArray(config.searchDirectories) ? config.searchDirectories : []
   )
-  // 文件搜索的扩展名白名单：输入框里是逗号分隔的字符串，提交时解析成数组
-  const [fileExtsInput, setFileExtsInput] = useState(
-    Array.isArray(config.fileSearchExtensions) ? config.fileSearchExtensions.join(', ') : ''
-  )
-  /** 把用户输入解析成扩展名数组：中英文逗号/空格/顿号分隔，统一去点转小写 */
-  const parseFileExts = (raw: string): string[] =>
-    raw
-      .split(/[,，、\s]+/)
-      .map((item) => item.trim().replace(/^\.+/, '').toLowerCase())
-      .filter(Boolean)
+// 文件搜索的扩展名白名单：常用类型用勾选，特殊类型在输入框手动补充
+const [selectedExts, setSelectedExts] = useState<string[]>(
+  Array.isArray(config.fileSearchExtensions) ? config.fileSearchExtensions : []
+)
+// 自定义扩展名输入框的草稿：输入过程只改草稿，失焦才解析提交
+const [customExtsDraft, setCustomExtsDraft] = useState(
+  (Array.isArray(config.fileSearchExtensions) ? config.fileSearchExtensions : [])
+    .filter((item) => !PRESET_EXTS.includes(item))
+    .join(', ')
+)
+/** 把用户输入解析成扩展名数组：中英文逗号/空格/顿号分隔，统一去点转小写 */
+const parseFileExts = (raw: string): string[] =>
+  raw
+    .split(/[,，、\s]+/)
+    .map((item) => item.trim().replace(/^\.+/, '').toLowerCase())
+    .filter(Boolean)
   // 开机启动：真实状态以系统登录项为准，配置里的值只做初始回显
   const [launchAtLogin, setLaunchAtLogin] = useState(Boolean(config.launchAtLogin))
   // 程序坞图标：隐藏后应用只驻留菜单栏
@@ -217,6 +241,29 @@ export const Setting = ({ section }: { section: SettingSection }) => {
   // 移除文件搜索目录
   const removeSearchDir = (path: string): void => {
     setDirs(dirs.filter((d) => d !== path))
+    window.api.invalidateFiles()
+    submitForm()
+  }
+
+  // 勾选/取消一个预设文件类型（自定义输入框里的草稿原样保留）
+  const togglePresetExt = (ext: string): void => {
+    const presets = selectedExts.filter((item) => PRESET_EXTS.includes(item))
+    const next = presets.includes(ext)
+      ? presets.filter((item) => item !== ext)
+      : [...presets, ext]
+    setSelectedExts([...next, ...parseFileExts(customExtsDraft)])
+    window.api.invalidateFiles()
+    submitForm()
+  }
+
+  // 手动补充特殊类型：输入过程只改草稿，失焦才解析并入白名单提交
+  const handleCustomExtsChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    setCustomExtsDraft(e.target.value)
+  }
+
+  const handleCustomExtsBlur = (): void => {
+    const presets = selectedExts.filter((item) => PRESET_EXTS.includes(item))
+    setSelectedExts([...presets, ...new Set(parseFileExts(customExtsDraft))])
     window.api.invalidateFiles()
     submitForm()
   }
@@ -413,7 +460,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
           </section>
         )}
 
-        {section === 'search' && (
+        {section === 'webSearch' && (
           <>
             <section className="setting-card">
               <div className="card-head">
@@ -450,65 +497,91 @@ export const Setting = ({ section }: { section: SettingSection }) => {
               </div>
               <WebEngines engines={engines} onChange={handleEnginesChange} />
             </section>
-
-            <section className="setting-card">
-              <div className="card-head">
-                <FolderSearch theme="outline" size={15} fill="#64748b" strokeWidth={4} />
-                <span>{t('setting.search.fileSearch.title')}</span>
-              </div>
-
-              <div className="setting-row">
-                <div className="row-label">
-                  <span className="label-main">{t('setting.search.searchDirs.label')}</span>
-                  <span className="label-sub">
-                    {dirs.length > 0
-                      ? t('setting.search.searchDirs.subHas', { n: dirs.length })
-                      : t('setting.search.searchDirs.subNone')}
-                  </span>
-                </div>
-                <div className="row-control">
-                  <button type="button" className="mini-btn" onClick={() => void addSearchDir()}>
-                    {t('setting.search.addDir')}
-                  </button>
-                </div>
-              </div>
-
-              {dirs.length > 0 && (
-                <div className="dir-list">
-                  {dirs.map((path) => (
-                    <div key={path} className="dir-row">
-                      <span className="dir-row-path" title={path}>
-                        {path}
-                      </span>
-                      <button
-                        type="button"
-                        className="mini-btn danger"
-                        onClick={() => removeSearchDir(path)}
-                      >
-                        {t('common.remove')}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="setting-row">
-                <div className="row-label">
-                  <span className="label-main">{t('setting.search.fileExts.label')}</span>
-                  <span className="label-sub">{t('setting.search.fileExts.sub')}</span>
-                </div>
-                <div className="row-control">
-                  <input
-                    className="ext-input nodrag"
-                    value={fileExtsInput}
-                    onChange={(e) => setFileExtsInput(e.target.value)}
-                    placeholder={t('setting.search.fileExts.placeholder')}
-                    spellCheck={false}
-                  />
-                </div>
-              </div>
-            </section>
           </>
+        )}
+
+        {section === 'files' && (
+          <section className="setting-card">
+            <div className="card-head">
+              <FolderSearch theme="outline" size={15} fill="#64748b" strokeWidth={4} />
+              <span>{t('setting.search.fileSearch.title')}</span>
+            </div>
+
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">{t('setting.search.searchDirs.label')}</span>
+                <span className="label-sub">
+                  {dirs.length > 0
+                    ? t('setting.search.searchDirs.subHas', { n: dirs.length })
+                    : t('setting.search.searchDirs.subNone')}
+                </span>
+              </div>
+              <div className="row-control">
+                <button type="button" className="mini-btn" onClick={() => void addSearchDir()}>
+                  {t('setting.search.addDir')}
+                </button>
+              </div>
+            </div>
+
+            {dirs.length > 0 && (
+              <div className="dir-list">
+                {dirs.map((path) => (
+                  <div key={path} className="dir-row">
+                    <span className="dir-row-path" title={path}>
+                      {path}
+                    </span>
+                    <button
+                      type="button"
+                      className="mini-btn danger"
+                      onClick={() => removeSearchDir(path)}
+                    >
+                      {t('common.remove')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="setting-row">
+              <div className="row-label">
+                <span className="label-main">{t('setting.search.fileExts.label')}</span>
+                <span className="label-sub">{t('setting.search.fileExts.sub')}</span>
+              </div>
+            </div>
+
+            <div className="ext-groups">
+              {PRESET_EXT_GROUPS.map((group) => (
+                <div className="ext-group" key={group.label}>
+                  <span className="ext-group-label">{group.label}</span>
+                  <div className="ext-chips">
+                    {group.exts.map((ext) => (
+                      <button
+                        key={ext}
+                        type="button"
+                        className={classNames('ext-chip', {
+                          on: selectedExts.includes(ext)
+                        })}
+                        onClick={() => togglePresetExt(ext)}
+                      >
+                        {ext}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="ext-group">
+                <span className="ext-group-label">{t('setting.search.fileExts.custom')}</span>
+                <input
+                  className="ext-input nodrag"
+                  value={customExtsDraft}
+                  onChange={handleCustomExtsChange}
+                  onBlur={handleCustomExtsBlur}
+                  placeholder={t('setting.search.fileExts.placeholder')}
+                  spellCheck={false}
+                />
+              </div>
+            </div>
+          </section>
         )}
 
         {section === 'clipboard' && (
@@ -691,7 +764,7 @@ export const Setting = ({ section }: { section: SettingSection }) => {
         <input
           type="hidden"
           name="fileSearchExtensions"
-          value={JSON.stringify(parseFileExts(fileExtsInput))}
+          value={JSON.stringify(selectedExts)}
           readOnly
         />
         <input type="hidden" name="language" value={language} readOnly />

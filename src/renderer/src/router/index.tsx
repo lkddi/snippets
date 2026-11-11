@@ -22,7 +22,8 @@ const SETTING_SECTIONS: SettingSection[] = [
   'general',
   'shortcuts',
   'apps',
-  'search',
+  'webSearch',
+  'files',
   'clipboard',
   'data',
   'about'
