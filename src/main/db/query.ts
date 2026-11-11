@@ -48,6 +48,7 @@ export const config = (): ConfigDataType => {
     webSearchEngine: 'baidu',
     webEngines: DEFAULT_WEB_ENGINES,
     searchDirectories: [],
+    fileSearchExtensions: [],
     appShortCuts: [],
     language: 'system'
   }

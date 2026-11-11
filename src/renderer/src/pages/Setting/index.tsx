@@ -65,6 +65,16 @@ export const Setting = ({ section }: { section: SettingSection }) => {
   const [dirs, setDirs] = useState<string[]>(
     Array.isArray(config.searchDirectories) ? config.searchDirectories : []
   )
+  // 文件搜索的扩展名白名单：输入框里是逗号分隔的字符串，提交时解析成数组
+  const [fileExtsInput, setFileExtsInput] = useState(
+    Array.isArray(config.fileSearchExtensions) ? config.fileSearchExtensions.join(', ') : ''
+  )
+  /** 把用户输入解析成扩展名数组：中英文逗号/空格/顿号分隔，统一去点转小写 */
+  const parseFileExts = (raw: string): string[] =>
+    raw
+      .split(/[,，、\s]+/)
+      .map((item) => item.trim().replace(/^\.+/, '').toLowerCase())
+      .filter(Boolean)
   // 开机启动：真实状态以系统登录项为准，配置里的值只做初始回显
   const [launchAtLogin, setLaunchAtLogin] = useState(Boolean(config.launchAtLogin))
   // 程序坞图标：隐藏后应用只驻留菜单栏
@@ -481,6 +491,22 @@ export const Setting = ({ section }: { section: SettingSection }) => {
                   ))}
                 </div>
               )}
+
+              <div className="setting-row">
+                <div className="row-label">
+                  <span className="label-main">{t('setting.search.fileExts.label')}</span>
+                  <span className="label-sub">{t('setting.search.fileExts.sub')}</span>
+                </div>
+                <div className="row-control">
+                  <input
+                    className="ext-input nodrag"
+                    value={fileExtsInput}
+                    onChange={(e) => setFileExtsInput(e.target.value)}
+                    placeholder={t('setting.search.fileExts.placeholder')}
+                    spellCheck={false}
+                  />
+                </div>
+              </div>
             </section>
           </>
         )}
@@ -662,6 +688,12 @@ export const Setting = ({ section }: { section: SettingSection }) => {
         <input type="hidden" name="webSearchEngine" value={engine} readOnly />
         <input type="hidden" name="webEngines" value={JSON.stringify(engines)} readOnly />
         <input type="hidden" name="searchDirectories" value={JSON.stringify(dirs)} readOnly />
+        <input
+          type="hidden"
+          name="fileSearchExtensions"
+          value={JSON.stringify(parseFileExts(fileExtsInput))}
+          readOnly
+        />
         <input type="hidden" name="language" value={language} readOnly />
 
         <footer className="page-footer">{t('setting.footer')}</footer>

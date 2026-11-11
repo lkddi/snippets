@@ -35,7 +35,12 @@ const en = {
       engines: { title: 'Search engines & keywords' },
       fileSearch: { title: 'File search' },
       searchDirs: { label: 'Search directories', subHas: '{n} director(y/ies) configured', subNone: 'Add a directory to search files within it' },
-      addDir: 'Add directory'
+      addDir: 'Add directory',
+      fileExts: {
+        label: 'File types',
+        sub: 'Only search files with these extensions; leave empty for all types',
+        placeholder: 'e.g. pdf, docx, md (empty = all)'
+      }
     },
     clipboard: {
       title: 'History',

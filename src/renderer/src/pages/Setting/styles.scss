@@ -390,6 +390,25 @@ kbd {
   margin-right: 4px;
 }
 
+/* ---- 文件类型白名单 ---- */
+
+.ext-input {
+  width: 220px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+  font-size: 12px;
+  color: #334155;
+  background: #f8fafc;
+
+  &:focus {
+    border-color: #94a3b8;
+    background: #fff;
+  }
+}
+
 /* ---- 存储目录 ---- */
 
 .dir-path {

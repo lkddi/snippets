@@ -117,6 +117,17 @@ export default async ({ request }) => {
     // 解析失败保持空数组，下次设置页再配置
   }
 
+  // 文件类型白名单：隐藏域里是已解析的扩展名数组（去点、小写）
+  let fileSearchExtensions: string[] = []
+  try {
+    const parsed = JSON.parse(String(data.fileSearchExtensions ?? '[]'))
+    if (Array.isArray(parsed)) {
+      fileSearchExtensions = parsed.filter((item) => typeof item === 'string' && item)
+    }
+  } catch {
+    // 同上，保持空数组 = 不限类型
+  }
+
   const content = JSON.stringify({
     shortCut: searchAccelerator,
     databaseDirectory: data.databaseDirectory,
@@ -127,6 +138,7 @@ export default async ({ request }) => {
     webSearchEngine: engine,
     webEngines: engines,
     searchDirectories,
+    fileSearchExtensions,
     // 应用快捷键由 appShortCut:* 这组 IPC 单独维护，这里必须原样带回，
     // 否则每次保存普通设置都会把绑定清空
     appShortCuts: await readAppShortCuts(),

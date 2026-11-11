@@ -54,6 +54,29 @@ const searchDirectories = (): string[] => {
   return Array.isArray(dirs) ? dirs.filter((d) => typeof d === 'string' && d) : []
 }
 
+/**
+ * 扩展名白名单（小写、不含点）。空数组 = 不限类型，全部文件可搜。
+ * 目录不受该名单限制——搜文件夹本来就是靠名字，按类型过滤没有意义。
+ */
+const searchExtensions = (): Set<string> => {
+  const list = config().fileSearchExtensions
+  if (!Array.isArray(list)) return new Set()
+  return new Set(
+    list
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim().replace(/^\.+/, '').toLowerCase())
+      .filter(Boolean)
+  )
+}
+
+/** 文件是否在白名单内；名单为空表示不过滤 */
+const extAllowed = (name: string, allowed: Set<string>): boolean => {
+  if (!allowed.size) return true
+  const ext = name.slice(name.lastIndexOf('.') + 1).toLowerCase()
+  // 无扩展名的文件按类型过滤时排除（点开头已被隐藏文件规则挡掉）
+  return Boolean(ext) && ext !== name.toLowerCase() && allowed.has(ext)
+}
+
 /** 中文名转拼音检索字段（与 apps.ts 的规则一致，但文件名里中英混合很常见） */
 const buildPinyinFields = (name: string): { pinyinFull: string; pinyinInitials: string } => {
   if (!/[\u4e00-\u9fa5]/.test(name)) return { pinyinFull: '', pinyinInitials: '' }
@@ -68,8 +91,13 @@ const buildPinyinFields = (name: string): { pinyinFull: string; pinyinInitials: 
   return { pinyinFull, pinyinInitials }
 }
 
-/** 递归扫一个目录：限制深度、跳过隐藏/依赖目录、条目超限即停 */
-const walkDir = async (dir: string, depth: number, entries: FileEntry[]): Promise<void> => {
+/** 递归扫一个目录：限制深度、跳过隐藏/依赖目录、条目超限即停；allowed 为扩展名白名单 */
+const walkDir = async (
+  dir: string,
+  depth: number,
+  entries: FileEntry[],
+  allowed: Set<string>
+): Promise<void> => {
   if (depth > MAX_DEPTH || entries.length >= MAX_ENTRIES) return
 
   let dirents
@@ -88,8 +116,8 @@ const walkDir = async (dir: string, depth: number, entries: FileEntry[]): Promis
     if (dirent.isDirectory()) {
       if (SKIP_DIRS.has(dirent.name)) continue
       entries.push({ ...wrapEntry(dirent.name, fullPath, true), ...buildPinyinFields(dirent.name) })
-      await walkDir(fullPath, depth + 1, entries)
-    } else if (dirent.isFile()) {
+      await walkDir(fullPath, depth + 1, entries, allowed)
+    } else if (dirent.isFile() && extAllowed(dirent.name, allowed)) {
       entries.push({ ...wrapEntry(dirent.name, fullPath, false), ...buildPinyinFields(dirent.name) })
     }
   }
@@ -104,13 +132,14 @@ const wrapEntry = (name: string, path: string, isDir: boolean) => ({
   pinyinInitials: ''
 })
 
-/** 扫描全部配置目录并缓存；签名 / TTL 未过期时直接复用 */
+/** 扫描全部配置目录并缓存；签名（目录 + 类型白名单）/ TTL 未过期时直接复用 */
 const ensureScanned = (): Promise<void> => {
-  const signature = searchDirectories().join('\n')
+  const allowed = searchExtensions()
+  const signature = `${searchDirectories().join('\n')}\u0000${[...allowed].sort().join(',')}`
   const expired = Date.now() - cacheTime > CACHE_TTL
 
   if (scanPromise && signature === cacheSignature && !expired) return scanPromise
-  if (!signature) {
+  if (!signature.split('\u0000')[0]) {
     fileCache = []
     cacheSignature = signature
     cacheTime = Date.now()
@@ -127,7 +156,7 @@ const ensureScanned = (): Promise<void> => {
       // 目录本身也作为一条结果（搜"项目"时能看到项目文件夹本身）
       const base = basename(expanded) || expanded
       entries.push({ name: base, path: expanded, isDir: true, ...buildPinyinFields(base) })
-      await walkDir(expanded, 1, entries)
+      await walkDir(expanded, 1, entries, allowed)
     }
     fileCache = entries
   })()
@@ -179,6 +208,15 @@ ipcMain.handle('files:open', async (_event: IpcMainInvokeEvent, path: string) =>
     console.error('打开文件失败', path, error)
     shell.showItemInFolder(path)
   }
+  const win = getByNameWindow('search')
+  if (!win.isDestroyed()) win.hide()
+  return true
+})
+
+/** 在文件管理器中显示文件所在位置（macOS Finder / Windows 资源管理器） */
+ipcMain.handle('files:reveal', (_event: IpcMainInvokeEvent, path: string) => {
+  if (typeof path !== 'string' || !path) return false
+  shell.showItemInFolder(path)
   const win = getByNameWindow('search')
   if (!win.isDestroyed()) win.hide()
   return true

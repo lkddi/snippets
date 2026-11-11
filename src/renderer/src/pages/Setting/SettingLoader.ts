@@ -17,6 +17,7 @@ export default async () => {
     webSearchEngine: 'baidu',
     webEngines: defaultEngines,
     searchDirectories: [],
+    fileSearchExtensions: [],
     appShortCuts: [],
     language: 'system'
   }

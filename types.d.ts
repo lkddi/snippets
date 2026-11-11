@@ -42,6 +42,8 @@ type ConfigDataType = {
   webEngines: WebEngineType[]
   /** 文件搜索允许扫描的目录，支持多个 */
   searchDirectories: string[]
+  /** 文件搜索的扩展名白名单（不含点、小写），空数组 = 不限类型 */
+  fileSearchExtensions: string[]
   /** 按应用绑定的全局快捷键（启动 / 隐藏切换） */
   appShortCuts: AppShortcutType[]
   /** 界面语言：'system' 跟随系统（解析为系统语言，未支持回落英文），或显式指定简体 / 繁体 / 英文 */

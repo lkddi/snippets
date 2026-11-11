@@ -34,7 +34,12 @@ const zhTW = {
       engines: { title: '搜尋引擎與關鍵字' },
       fileSearch: { title: '檔案搜尋' },
       searchDirs: { label: '搜尋目錄', subHas: '已設定 {n} 個目錄', subNone: '加入目錄後即可搜尋其中的檔案' },
-      addDir: '加入目錄'
+      addDir: '加入目錄',
+      fileExts: {
+        label: '檔案類型',
+        sub: '僅搜尋這些副檔名的檔案，留空表示不限類型；多個用逗號分隔',
+        placeholder: '如：pdf, docx, md（留空不限）'
+      }
     },
     clipboard: {
       title: '歷史記錄',

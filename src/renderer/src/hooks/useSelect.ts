@@ -64,6 +64,15 @@ export default () => {
     [clearAndHide]
   )
 
+  // 文件所在文件夹：在 Finder / 资源管理器中显示并选中（Cmd+回车）
+  const revealFile = useCallback(
+    async (path: string): Promise<void> => {
+      await window.api.revealFile(path)
+      clearAndHide()
+    },
+    [clearAndHide]
+  )
+
   // 网页搜索兜底：主进程 openExternal 后同样收起搜索窗
   const activateWeb = useCallback(async (): Promise<void> => {
     if (!web) return
@@ -99,7 +108,11 @@ export default () => {
             if (appItem) void activateApp(appItem.path)
           } else if (safeIndex < apps.length + files.length) {
             const fileItem = files[safeIndex - apps.length]
-            if (fileItem) void activateFile(fileItem.path)
+            if (fileItem) {
+              // Cmd+回车（Windows 上 Ctrl+回车）= 打开文件所在文件夹并选中
+              if (e.metaKey || e.ctrlKey) void revealFile(fileItem.path)
+              else void activateFile(fileItem.path)
+            }
           } else if (safeIndex < apps.length + files.length + data.length) {
             const contentId = data[safeIndex - apps.length - files.length]?.id
             if (contentId) void selectItem(contentId)
@@ -114,7 +127,7 @@ export default () => {
         }
       }
     },
-    [total, activeIndex, apps, files, data, activateApp, activateFile, activateWeb, selectItem]
+    [total, activeIndex, apps, files, data, activateApp, activateFile, revealFile, activateWeb, selectItem]
   )
 
   useEffect(() => {

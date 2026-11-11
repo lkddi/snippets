@@ -66,6 +66,9 @@ const api = {
   openFile: (path: string) => {
     return ipcRenderer.invoke('files:open', path)
   },
+  revealFile: (path: string) => {
+    return ipcRenderer.invoke('files:reveal', path)
+  },
   selectSearchDirectory: () => {
     return ipcRenderer.invoke('files:selectDir')
   },

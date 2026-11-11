@@ -34,6 +34,8 @@ declare global {
       searchFiles: (keyword: string) => Promise<FileType[]>
       /** 打开文件 / 文件夹，成功后主进程会自动收起搜索窗 */
       openFile: (path: string) => Promise<boolean>
+      /** 在文件管理器（Finder / 资源管理器）中显示文件所在位置 */
+      revealFile: (path: string) => Promise<boolean>
       /** 弹出系统目录选择框，返回选中路径（取消返回空串） */
       selectSearchDirectory: () => Promise<string>
       /** 目录配置变化后通知主进程重建文件扫描缓存 */

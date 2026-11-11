@@ -34,7 +34,12 @@ const zhCN = {
       engines: { title: '搜索引擎与关键字' },
       fileSearch: { title: '文件搜索' },
       searchDirs: { label: '搜索目录', subHas: '已配置 {n} 个目录', subNone: '添加目录后即可搜索其中的文件' },
-      addDir: '添加目录'
+      addDir: '添加目录',
+      fileExts: {
+        label: '文件类型',
+        sub: '只搜索这些扩展名的文件，留空表示不限类型；多个用逗号分隔',
+        placeholder: '如：pdf, docx, md（留空不限）'
+      }
     },
     clipboard: {
       title: '历史记录',

@@ -1,4 +1,5 @@
 import useSelect from '@renderer/hooks/useSelect'
+import { isMacPlatform } from '@renderer/utils/accelerator'
 import { Fragment } from 'react'
 import { Earth, FileCodeOne, FileText, FolderClose } from '@icon-park/react'
 import classNames from 'classnames'
@@ -71,7 +72,11 @@ export default function Result() {
                 </span>
                 <span className="item-title">{item.name}</span>
                 <span className="item-subtitle item-path" title={item.path}>
-                  {item.isDir ? '文件夹' : '文件'}
+                  {item.isDir
+                    ? '文件夹'
+                    : isMacPlatform()
+                      ? '文件 · ⌘↩ 所在文件夹'
+                      : '文件 · Ctrl+↩ 所在文件夹'}
                 </span>
               </div>
             )
